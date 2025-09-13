@@ -4,11 +4,31 @@ import User from '../models/User.js';
 
 class UserController {
   /**
+   * Helper para cargar el usuario completo desde la BD
+   */
+  async _loadCurrentUser(req) {
+    if (!req.user || !req.user.id) {
+      return null;
+    }
+    return await User.findByPk(req.user.id);
+  }
+
+  /**
    * Obtener usuarios pendientes (solo administradores)
    */
   getPendingUsers = async (req, res, next) => {
     try {
-      if (!req.user || !req.user.canManageUsers?.()) {
+      // Cargar el usuario completo desde la BD
+      const currentUser = await this._loadCurrentUser(req);
+      
+      if (!currentUser) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      if (!currentUser.canManageUsers()) {
         return res.status(403).json({
           success: false,
           message: 'No autorizado para ver usuarios pendientes'
@@ -36,7 +56,17 @@ class UserController {
    */
   getActiveUsers = async (req, res, next) => {
     try {
-      if (!req.user || !req.user.canManageUsers?.()) {
+      // Cargar el usuario completo desde la BD
+      const currentUser = await this._loadCurrentUser(req);
+      
+      if (!currentUser) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      if (!currentUser.canManageUsers()) {
         return res.status(403).json({
           success: false,
           message: 'No autorizado para ver usuarios'
@@ -102,7 +132,17 @@ class UserController {
     try {
       const { userId } = req.params;
 
-      if (!req.user || !req.user.canManageUsers?.()) {
+      // Cargar el usuario completo desde la BD
+      const currentUser = await this._loadCurrentUser(req);
+      
+      if (!currentUser) {
+        return res.status(401).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      if (!currentUser.canManageUsers()) {
         return res.status(403).json({
           success: false,
           message: 'No autorizado para aprobar usuarios'
