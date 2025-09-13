@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: reportes_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: reportes_mtto
+      POSTGRES_USER: reportes_user
+      POSTGRES_PASSWORD: reportes_password_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - reportes_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reportes_user -d reportes_mtto"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Object Storage (para fotografías de evidencia)
+  minio:
+    image: minio/minio:latest
+    container_name: reportes_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_DEFAULT_BUCKETS: evidencias,avatars,documents
+    ports:
+      - "9000:9000"  # MinIO API
+      - "9001:9001"  # MinIO Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - reportes_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Redis (para caché y sesiones)
+  redis:
+    image: redis:7-alpine
+    container_name: reportes_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass "redis_password_2024"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - reportes_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # pgAdmin (interfaz web para PostgreSQL)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: reportes_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@reportes.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - reportes_network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  reportes_network:
+    driver: bridge
+    name: reportes_network

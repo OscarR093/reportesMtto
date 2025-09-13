@@ -1,0 +1,118 @@
+{
+  "fusion": {
+    "hornos": [
+      "horno 1",
+      "horno 2",
+      "horno 3",
+      "horno 4",
+      "horno 5",
+      "horno 6",
+      "horno 7",
+      "horno 8"
+    ],
+    "torre": {},
+    "otros": {}
+  },
+  "moldeo": {
+    "moldeadora": {},
+    "linea1": {
+      "robots": [
+        100,
+        200,
+        400
+      ],
+      "troquel": {},
+      "sierraCinta": {},
+      "rayosX": {},
+      "bandas": {}
+    },
+    "linea2": {
+      "robots": [
+        100,
+        200,
+        400
+      ],
+      "troquel": {},
+      "sierraCinta": {},
+      "rayosX": {},
+      "bandas": {}
+    },
+    "linea3": {
+      "robots": [
+        100,
+        200,
+        400
+      ],
+      "troquel": {},
+      "sierraCinta": {},
+      "rayosX": {},
+      "bandas": {}
+    },
+    "linea4": {
+      "robots": [
+        100,
+        200,
+        400
+      ],
+      "troquel": {},
+      "sierraCinta": {},
+      "rayosX": {},
+      "bandas": {}
+    },
+    "linea7": {
+      "robots": [
+        100,
+        200,
+        400
+      ],
+      "troquel": {},
+      "sierraCinta": {},
+      "rayosX": {},
+      "bandas": {}
+    }
+  },
+  "mecanizado": {
+    "sw": [
+      514,
+      433,
+      604,
+      460,
+      372,
+      391,
+      378,
+      361,
+      507,
+      47,
+      124
+    ],
+    "ensamble1": {
+      "prensa1": {},
+      "prensa2": {},
+      "prensa3": {},
+      "marcadora": {},
+      "lavadora": {}
+    },
+    "ensamble2": {
+      "prensa1": {},
+      "prensa2": {},
+      "prensa3": {},
+      "marcadora": {},
+      "lavadora": {}
+    },
+    "ensamble3": {
+      "prensa1": {},
+      "prensa2": {},
+      "prensa3": {},
+      "marcadora": {},
+      "lavadora": {}
+    },
+    "ensamble4": {
+      "prensa1": {},
+      "prensa2": {},
+      "prensa3": {},
+      "marcadora": {},
+      "lavadora": {}
+    },
+    "otros": {}
+  }
+}
