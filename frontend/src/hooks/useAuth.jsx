@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = 'http://localhost:3000/api';
+  const API_URL = '/api'; // Usar URL relativa con proxy
 
   // Verificar si hay un token almacenado al cargar la aplicación
   useEffect(() => {

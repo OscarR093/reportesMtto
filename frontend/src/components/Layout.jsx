@@ -11,6 +11,7 @@ import {
   CogIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
+import UserAvatar from './UserAvatar';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -88,14 +89,10 @@ const Layout = ({ children }) => {
 
           <div className="border-t border-gray-200 p-4">
             <div className="flex items-center">
-              <img
-                className="h-10 w-10 rounded-full"
-                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=3b82f6&color=fff`}
-                alt={`${user?.firstName} ${user?.lastName}`}
-              />
+              <UserAvatar user={user} size="md" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-700">
-                  {user?.firstName} {user?.lastName}
+                  {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
@@ -149,16 +146,12 @@ const Layout = ({ children }) => {
             })}
           </nav>
 
-          <div className="border-t border-gray-200 p-4">
+                    <div className="border-t border-gray-200 p-4">
             <div className="flex items-center">
-              <img
-                className="h-10 w-10 rounded-full"
-                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=3b82f6&color=fff`}
-                alt={`${user?.firstName} ${user?.lastName}`}
-              />
+              <UserAvatar user={user} size="md" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-700">
-                  {user?.firstName} {user?.lastName}
+                  {user?.name || 'Usuario'}
                 </p>
                 <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
@@ -195,13 +188,9 @@ const Layout = ({ children }) => {
               <div className="relative ml-3">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-700">
-                    {user?.firstName} {user?.lastName}
+                    {user?.name || 'Usuario'}
                   </span>
-                  <img
-                    className="h-8 w-8 rounded-full"
-                    src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.firstName}+${user?.lastName}&background=3b82f6&color=fff`}
-                    alt={`${user?.firstName} ${user?.lastName}`}
-                  />
+                  <UserAvatar user={user} size="sm" />
                 </div>
               </div>
             </div>

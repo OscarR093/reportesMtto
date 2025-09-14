@@ -23,7 +23,7 @@ const UserManagement = () => {
   const [selectedRole, setSelectedRole] = useState('all');
   const [actionLoading, setActionLoading] = useState(false);
 
-  const API_URL = 'http://localhost:3000/api';
+  const API_URL = '/api'; // Usar URL relativa con proxy
 
   const roles = [
     { value: 'all', label: 'Todos los roles' },
@@ -373,57 +373,78 @@ const UserManagement = () => {
   );
 };
 
-// Componente para avatar con fallback a icono
-const UserAvatar = ({ user, size = 'h-10 w-10' }) => {
-  const [imageError, setImageError] = useState(false);
-  
-  // Generar color de fondo basado en el nombre del usuario
-  const getAvatarColor = (name) => {
-    if (!name) return 'bg-gray-400';
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
-      'bg-indigo-500', 'bg-red-500', 'bg-yellow-500', 'bg-teal-500'
-    ];
-    const charCode = name.charCodeAt(0);
-    return colors[charCode % colors.length];
-  };
-
-  // Obtener iniciales del usuario
-  const getInitials = (user) => {
-    if (user.name) {
-      const names = user.name.split(' ');
-      if (names.length >= 2) {
-        return `${names[0].charAt(0)}${names[1].charAt(0)}`.toUpperCase();
-      }
-      return names[0].charAt(0).toUpperCase();
-    }
-    return user.email ? user.email.charAt(0).toUpperCase() : 'U';
-  };
-  
-  if (!user.photo || imageError) {
-    const bgColor = getAvatarColor(user.name || user.email);
-    const initials = getInitials(user);
+  // Componente para manejar avatares de usuario con mejor fallback
+  const UserAvatar = ({ user, size = 'md' }) => {
+    const [imageError, setImageError] = useState(false);
     
+    const sizeClasses = {
+      sm: 'h-8 w-8',
+      md: 'h-10 w-10',
+      lg: 'h-16 w-16',
+      xl: 'h-20 w-20'
+    };
+    
+    const iconSizeClasses = {
+      sm: 'h-4 w-4',
+      md: 'h-5 w-5',
+      lg: 'h-8 w-8',
+      xl: 'h-10 w-10'
+    };
+    
+    const textSizeClasses = {
+      sm: 'text-xs',
+      md: 'text-sm',
+      lg: 'text-lg',
+      xl: 'text-xl'
+    };
+
+    // Función para generar color de fondo basado en el nombre
+    const getBackgroundColor = (name) => {
+      if (!name) return 'bg-gray-400';
+      const colors = [
+        'bg-red-500', 'bg-yellow-500', 'bg-green-500', 'bg-blue-500',
+        'bg-indigo-500', 'bg-purple-500', 'bg-pink-500', 'bg-cyan-500',
+        'bg-orange-500', 'bg-teal-500'
+      ];
+      const index = name.charCodeAt(0) % colors.length;
+      return colors[index];
+    };
+
+    // Si hay foto y no hay error, mostrar la imagen
+    if (user.photo && !imageError) {
+      return (
+        <img 
+          className={`${typeof size === 'string' && size.includes('h-') ? size : sizeClasses[size]} rounded-full object-cover border-2 border-gray-200`}
+          src={user.photo} 
+          alt={user.name || 'Usuario'}
+          onError={() => setImageError(true)}
+        />
+      );
+    }
+
+    // Si hay nombre, mostrar iniciales con color de fondo
+    if (user.name && user.name.trim()) {
+      const initials = user.name.trim().split(' ')
+        .map(n => n.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('');
+      
+      return (
+        <div className={`${typeof size === 'string' && size.includes('h-') ? size : sizeClasses[size]} rounded-full ${getBackgroundColor(user.name)} flex items-center justify-center border-2 border-gray-200`}>
+          <span className={`${typeof size === 'string' && size.includes('h-') ? 'text-sm' : textSizeClasses[size]} font-medium text-white`}>
+            {initials}
+          </span>
+        </div>
+      );
+    }
+
+    // Fallback: icono de usuario
     return (
-      <div className={`${size} flex-shrink-0 ${bgColor} rounded-full flex items-center justify-center`}>
-        <span className={`font-medium text-white ${size === 'h-10 w-10' ? 'text-sm' : 'text-lg'}`}>
-          {initials}
-        </span>
+      <div className={`${typeof size === 'string' && size.includes('h-') ? size : sizeClasses[size]} rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-200`}>
+        <UserIcon className={`${typeof size === 'string' && size.includes('h-') ? 'h-5 w-5' : iconSizeClasses[size]} text-gray-600`} />
       </div>
     );
-  }
-
-  return (
-    <img 
-      className={`${size} rounded-full flex-shrink-0 object-cover`} 
-      src={user.photo} 
-      alt={user.name || 'Usuario'}
-      onError={() => setImageError(true)}
-    />
-  );
-};
-
-// Componente para tabla de usuarios activos
+  };// Componente para tabla de usuarios activos
 const ActiveUsersTable = ({ users, onChangeRole, onDeactivate, actionLoading, currentUser }) => {
   if (users.length === 0) {
     return (

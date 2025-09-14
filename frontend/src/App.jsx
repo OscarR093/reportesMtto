@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Reports from './pages/Reports';
 import CreateReport from './pages/CreateReport';
 import UserManagement from './pages/UserManagement';
-import Profile from './pages/Profile';
+import UserProfile from './pages/UserProfile';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 
 // Componente para rutas protegidas
@@ -103,7 +103,7 @@ function AppContent() {
             path="/profile" 
             element={
               <ProtectedRoute>
-                <Profile />
+                <UserProfile />
               </ProtectedRoute>
             } 
           />
