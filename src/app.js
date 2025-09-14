@@ -6,6 +6,7 @@ import passport from 'passport';
 import config from './config/index.js';
 import setupPassport from './config/passport.js';
 import { connectDatabase } from './config/database.js';
+import minioService from './services/minioService.js';
 import { authController } from './controllers/authController.js';
 import { userController } from './controllers/userController.js';
 import dashboardController from './controllers/dashboardController.js';
@@ -117,6 +118,9 @@ class App {
     this.app.post('/api/auth/refresh', authController.refreshToken);
     this.app.get('/api/auth/status', authController.authStatus);
     this.app.get('/api/auth/profile', authenticateToken, authController.getProfile);
+    this.app.put('/api/auth/profile', authenticateToken, authController.updateProfile);
+    this.app.put('/api/auth/change-password', authenticateToken, authController.changePassword);
+    this.app.post('/api/auth/upload-photo', authenticateToken, avatarUpload.single('photo'), authController.uploadPhoto);
     this.app.get('/api/auth/error', authController.oauthError);
 
     // ===== RUTAS DE DASHBOARD =====
@@ -312,11 +316,20 @@ class App {
       process.exit(1);
     }
 
+    // Inicializar MinIO
+    console.log('🔧 Inicializando MinIO...');
+    const minioInitialized = await minioService.initialize();
+    
+    if (!minioInitialized) {
+      console.warn('⚠️  MinIO no se pudo inicializar, pero el servidor continuará');
+    }
+
     this.app.listen(port, () => {
       console.log(`🚀 Servidor API corriendo en http://localhost:${port}`);
       console.log(`📚 Environment: ${config.server.env}`);
       console.log(`🔐 OAuth configurado: ${config.oauth.google.clientId ? '✅' : '❌'}`);
       console.log(`🗄️  PostgreSQL conectado: ✅`);
+      console.log(`🗂️  MinIO inicializado: ${minioInitialized ? '✅' : '⚠️'}`);
       console.log(`👑 SuperAdmin: ${config.superAdmin.email}`);
       console.log(`🎯 API Base: http://localhost:${port}/api`);
       console.log(`⚛️  Configurado para React en puertos: 3001, 5173`);

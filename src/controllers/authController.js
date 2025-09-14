@@ -1,7 +1,9 @@
 import { authService } from '../services/authService.js';
 import { userService } from '../services/userService.js';
 import User from '../models/User.js';
+import { Op } from 'sequelize';
 import bcrypt from 'bcryptjs';
+import minioService from '../services/minioService.js';
 
 class AuthController {
   /**
@@ -274,11 +276,23 @@ class AuthController {
    */
   getProfile = async (req, res, next) => {
     try {
+      const user = req.user;
       res.json({
         success: true,
         message: 'Perfil obtenido exitosamente',
         data: {
-          user: req.user
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          employeeId: user.employee_id, // Mapear employee_id a employeeId
+          phone: user.phone,
+          department: user.department,
+          position: user.position,
+          role: user.role,
+          status: user.status,
+          photo: user.photo,
+          authProvider: user.auth_provider, // Mapear auth_provider a authProvider
+          firstTime: user.first_time
         }
       });
     } catch (error) {
@@ -298,6 +312,267 @@ class AuthController {
         error: 'oauth_failed'
       }
     });
+  };
+
+  /**
+   * Actualizar perfil de usuario
+   */
+  updateProfile = async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { name, employeeId, phone, department, position } = req.body;
+
+      console.log('📝 Actualizando perfil para usuario:', userId);
+
+      // Validaciones básicas
+      if (!name || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'El nombre es obligatorio'
+        });
+      }
+
+      if (!employeeId || !employeeId.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'El ID de empleado es obligatorio'
+        });
+      }
+
+      // Verificar que el ID de empleado no esté en uso por otro usuario
+      const existingUser = await User.findOne({
+        where: { 
+          employee_id: employeeId.trim(),
+          id: { [Op.ne]: userId } // Excluir el usuario actual
+        }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'El ID de empleado ya está en uso por otro usuario'
+        });
+      }
+
+      // Actualizar usuario
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      await user.update({
+        name: name.trim(),
+        employee_id: employeeId.trim(),
+        phone: phone && phone.trim() ? phone.trim() : null,
+        department: department && department.trim() ? department.trim() : null,
+        position: position && position.trim() ? position.trim() : null
+      });
+
+      // Recargar usuario actualizado
+      await user.reload();
+
+      console.log('✅ Perfil actualizado exitosamente para:', userId);
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          employeeId: user.employee_id, // Mapear employee_id a employeeId
+          phone: user.phone,
+          department: user.department,
+          position: user.position,
+          role: user.role,
+          status: user.status,
+          photo: user.photo,
+          authProvider: user.auth_provider // Mapear auth_provider a authProvider
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error actualizando perfil:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al actualizar el perfil'
+      });
+    }
+  };
+
+  /**
+   * Cambiar contraseña de usuario
+   */
+  changePassword = async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { currentPassword, newPassword } = req.body;
+
+      console.log('🔒 Cambiando contraseña para usuario:', userId);
+
+      // Validaciones básicas
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Contraseña actual y nueva contraseña son obligatorias'
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'La nueva contraseña debe tener al menos 6 caracteres'
+        });
+      }
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      // Verificar que el usuario no sea de Google OAuth
+      if (user.auth_provider === 'google') {
+        return res.status(400).json({
+          success: false,
+          message: 'Los usuarios de Google OAuth no pueden cambiar su contraseña'
+        });
+      }
+
+      // Verificar que el usuario tenga contraseña actual
+      if (!user.password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Usuario sin contraseña configurada'
+        });
+      }
+
+      // Verificar contraseña actual
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'La contraseña actual es incorrecta'
+        });
+      }
+
+      // Verificar que la nueva contraseña sea diferente
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'La nueva contraseña debe ser diferente a la actual'
+        });
+      }
+
+      // Hashear nueva contraseña
+      const saltRounds = 12;
+      const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Actualizar contraseña
+      await user.update({
+        password: hashedNewPassword
+      });
+
+      console.log('✅ Contraseña cambiada exitosamente para:', userId);
+
+      res.json({
+        success: true,
+        message: 'Contraseña cambiada exitosamente'
+      });
+    } catch (error) {
+      console.error('❌ Error cambiando contraseña:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor al cambiar la contraseña'
+      });
+    }
+  };
+
+  /**
+   * Subir foto de perfil
+   */
+  uploadPhoto = async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      console.log('📸 Subiendo foto para usuario:', userId);
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se ha proporcionado ningún archivo'
+        });
+      }
+
+      const user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      // Validar tipo de archivo
+      if (!minioService.isValidAvatarFile(req.file.originalname)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, GIF, WebP)'
+        });
+      }
+
+      // Subir archivo a MinIO
+      const uploadResult = await minioService.uploadAvatar(
+        req.file.buffer,
+        userId,
+        req.file.originalname
+      );
+
+      // Si el usuario tenía una foto anterior, intentar eliminarla
+      if (user.photo && user.photo.includes('minio')) {
+        try {
+          // Extraer el nombre del archivo de la URL anterior
+          const oldFileName = user.photo.split('/').pop();
+          await minioService.deleteFile('avatars', oldFileName);
+        } catch (deleteError) {
+          console.warn('⚠️  No se pudo eliminar la foto anterior:', deleteError.message);
+        }
+      }
+
+      // Actualizar URL de la foto en la base de datos
+      await user.update({
+        photo: uploadResult.url
+      });
+
+      console.log('✅ Foto subida exitosamente para:', userId);
+
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          employeeId: user.employee_id, // Mapear employee_id a employeeId
+          phone: user.phone,
+          department: user.department,
+          position: user.position,
+          role: user.role,
+          status: user.status,
+          photo: user.photo,
+          authProvider: user.auth_provider // Mapear auth_provider a authProvider
+        },
+        message: 'Foto de perfil actualizada exitosamente'
+      });
+    } catch (error) {
+      console.error('❌ Error subiendo foto:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error interno del servidor al subir la foto'
+      });
+    }
   };
 
   /**

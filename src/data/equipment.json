@@ -10,8 +10,7 @@
       "horno 7",
       "horno 8"
     ],
-    "torre": {},
-    "otros": {}
+    "torre": {}
   },
   "moldeo": {
     "moldeadora": {},
@@ -112,7 +111,6 @@
       "prensa3": {},
       "marcadora": {},
       "lavadora": {}
-    },
-    "otros": {}
+    }
   }
 }
