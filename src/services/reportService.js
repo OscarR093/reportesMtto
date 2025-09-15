@@ -54,8 +54,8 @@ class ReportService {
         status: reportData.status || 'abierto',
         title: reportData.title,
         description: reportData.description,
-        evidence_url: reportData.evidence_url,
-        evidence_filename: reportData.evidence_filename,
+        evidence_images: Array.isArray(reportData.evidence_images) ? JSON.stringify(reportData.evidence_images) : (reportData.evidence_images || '[]'),
+        evidence_filenames: Array.isArray(reportData.evidence_filenames) ? JSON.stringify(reportData.evidence_filenames) : (reportData.evidence_filenames || '[]'),
         work_performed: reportData.work_performed,
         materials_used: reportData.materials_used,
         time_spent: reportData.time_spent,
@@ -465,18 +465,19 @@ class ReportService {
   async deleteReport(reportId, user) {
     try {
       const report = await Report.findByPk(reportId);
-      
       if (!report) {
         throw new Error('Reporte no encontrado');
       }
 
-      // Solo super administradores pueden eliminar reportes
-      if (user.role !== 'super_admin') {
+      // Solo el creador puede eliminar su propio reporte, y solo si está abierto
+      if (report.user_id !== user.id) {
         throw new Error('No tienes permisos para eliminar reportes');
+      }
+      if (report.status !== 'abierto') {
+        throw new Error('Solo puedes eliminar reportes en estado abierto');
       }
 
       await report.destroy();
-      
       return { message: 'Reporte eliminado exitosamente' };
     } catch (error) {
       console.error('Error eliminando reporte:', error);

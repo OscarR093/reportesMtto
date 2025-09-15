@@ -9,14 +9,15 @@ class ReportController {
       const reportData = req.body;
       const user = req.user;
 
-      // Validar campos requeridos
-      if (!reportData.title) {
-        return res.status(400).json({
-          success: false,
-          error: 'El título es requerido'
-        });
-      }
+      console.log('🔍 Datos del usuario en createReport:', {
+        id: user?.id,
+        email: user?.email,
+        status: user?.status,
+        role: user?.role,
+        userObject: user
+      });
 
+      // El título ya no es requerido, se auto-genera si está vacío
       if (!reportData.equipment_area) {
         return res.status(400).json({
           success: false,

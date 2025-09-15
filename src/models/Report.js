@@ -86,15 +86,15 @@ const Report = sequelize.define('Report', {
     allowNull: true,
     comment: 'Descripción detallada del problema o trabajo realizado'
   },
-  evidence_url: {
+  evidence_images: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'URL de la fotografía de evidencia (se implementará con gestor de archivos)'
+    comment: 'Arreglo JSON de URLs de evidencias (máximo 3)'
   },
-  evidence_filename: {
-    type: DataTypes.STRING,
+  evidence_filenames: {
+    type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'Nombre original del archivo de evidencia'
+    comment: 'Arreglo JSON de nombres originales de archivos de evidencia (máximo 3)'
   },
   work_performed: {
     type: DataTypes.TEXT,
@@ -216,21 +216,10 @@ Report.prototype.isHighPriority = function() {
 };
 
 Report.prototype.canBeEditedBy = function(user) {
-  // El creador puede editar si no está cerrado
-  if (this.user_id === user.id && !['cerrado', 'cancelado'].includes(this.status)) {
+  // Solo el creador puede editar si el reporte está abierto
+  if (this.user_id === user.id && this.status === 'abierto') {
     return true;
   }
-  
-  // Los administradores pueden editar cualquier reporte
-  if (user.canManageUsers && user.canManageUsers()) {
-    return true;
-  }
-  
-  // El técnico asignado puede editar
-  if (this.assigned_to === user.id) {
-    return true;
-  }
-  
   return false;
 };
 

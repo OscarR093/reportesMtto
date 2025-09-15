@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/index.js';
+import User from '../models/User.js';
 
-export const authenticateToken = (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -15,7 +16,7 @@ export const authenticateToken = (req, res, next) => {
     });
   }
 
-  jwt.verify(token, config.jwt.secret, (err, user) => {
+  jwt.verify(token, config.jwt.secret, async (err, tokenUser) => {
     if (err) {
       return res.status(403).json({ 
         success: false, 
@@ -27,19 +28,47 @@ export const authenticateToken = (req, res, next) => {
       });
     }
     
-    req.user = user;
-    next();
+    try {
+      // Cargar información completa del usuario desde la base de datos
+      const fullUser = await User.findByPk(tokenUser.id);
+      
+      if (!fullUser) {
+        return res.status(403).json({
+          success: false,
+          message: 'Usuario no encontrado',
+          data: {
+            isAuthenticated: false
+          }
+        });
+      }
+
+      req.user = fullUser.get({ plain: true }); // Convertir a objeto simple
+      next();
+    } catch (error) {
+      console.error('Error cargando usuario:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor'
+      });
+    }
   });
 };
 
-export const optionalAuth = (req, res, next) => {
+export const optionalAuth = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (token) {
-    jwt.verify(token, config.jwt.secret, (err, user) => {
-      if (!err) {
-        req.user = user;
+    jwt.verify(token, config.jwt.secret, async (err, tokenUser) => {
+      if (!err && tokenUser) {
+        try {
+          const fullUser = await User.findByPk(tokenUser.id);
+          if (fullUser) {
+            req.user = fullUser.get({ plain: true });
+          }
+        } catch (error) {
+          console.error('Error cargando usuario en optionalAuth:', error);
+        }
       }
     });
   }

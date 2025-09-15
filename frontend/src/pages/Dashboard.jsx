@@ -59,13 +59,13 @@ const Dashboard = () => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'urgent':
+      case 'critica':
         return 'text-red-600 bg-red-100';
-      case 'high':
+      case 'alta':
         return 'text-orange-600 bg-orange-100';
-      case 'medium':
+      case 'media':
         return 'text-yellow-600 bg-yellow-100';
-      case 'low':
+      case 'baja':
         return 'text-green-600 bg-green-100';
       default:
         return 'text-gray-600 bg-gray-100';
@@ -74,12 +74,16 @@ const Dashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
+      case 'abierto':
         return 'text-yellow-600 bg-yellow-100';
-      case 'in_progress':
+      case 'en_proceso':
         return 'text-blue-600 bg-blue-100';
-      case 'completed':
+      case 'resuelto':
         return 'text-green-600 bg-green-100';
+      case 'cerrado':
+        return 'text-gray-600 bg-gray-100';
+      case 'cancelado':
+        return 'text-red-600 bg-red-100';
       default:
         return 'text-gray-600 bg-gray-100';
     }
@@ -119,7 +123,7 @@ const Dashboard = () => {
             </p>
           </div>
           <Link
-            to="/reports/new"
+            to="/reports/create"
             className="btn-primary flex items-center space-x-2"
           >
             <PlusIcon className="h-5 w-5" />
@@ -191,7 +195,7 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link
-            to="/reports/new"
+            to="/reports/create"
             className="card hover:shadow-lg transition-shadow cursor-pointer group"
           >
             <div className="flex items-center space-x-4">
@@ -258,7 +262,7 @@ const Dashboard = () => {
                 Comienza creando tu primer reporte de mantenimiento.
               </p>
               <div className="mt-6">
-                <Link to="/reports/new" className="btn-primary">
+                <Link to="/reports/create" className="btn-primary">
                   <PlusIcon className="h-4 w-4 mr-2" />
                   Crear Reporte
                 </Link>
@@ -295,12 +299,12 @@ const Dashboard = () => {
                             {report.title}
                           </div>
                           <div className="text-sm text-gray-500">
-                            #{report.reportNumber}
+                            #{report.id?.substring(0, 8)}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {report.equipment?.name || 'N/A'}
+                        {report.equipment_display || 'N/A'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
@@ -313,7 +317,7 @@ const Dashboard = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(report.createdAt)}
+                        {formatDate(report.created_at)}
                       </td>
                     </tr>
                   ))}

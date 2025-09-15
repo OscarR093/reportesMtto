@@ -32,7 +32,7 @@ class EquipmentService {
    */
   async getEquipmentHierarchy() {
     const data = await this.loadEquipmentData();
-    return data.equipment_hierarchy;
+    return data; // Los datos están directamente en el JSON
   }
 
   /**
@@ -42,8 +42,8 @@ class EquipmentService {
     const hierarchy = await this.getEquipmentHierarchy();
     return Object.keys(hierarchy).map(areaKey => ({
       key: areaKey,
-      name: hierarchy[areaKey].display_name,
-      description: hierarchy[areaKey].description
+      name: areaKey.charAt(0).toUpperCase() + areaKey.slice(1),
+      description: `Área de ${areaKey}`
     }));
   }
 
@@ -57,11 +57,10 @@ class EquipmentService {
       throw new Error(`Área '${areaKey}' no encontrada`);
     }
 
-    const machines = hierarchy[areaKey].machines || {};
+    const machines = hierarchy[areaKey];
     return Object.keys(machines).map(machineKey => ({
       key: machineKey,
-      name: machines[machineKey].display_name,
-      description: machines[machineKey].description,
+      name: machineKey.charAt(0).toUpperCase() + machineKey.slice(1),
       area: areaKey
     }));
   }
@@ -76,18 +75,31 @@ class EquipmentService {
       throw new Error(`Área '${areaKey}' no encontrada`);
     }
 
-    if (!hierarchy[areaKey].machines[machineKey]) {
+    if (!hierarchy[areaKey][machineKey]) {
       throw new Error(`Máquina '${machineKey}' no encontrada en área '${areaKey}'`);
     }
 
-    const elements = hierarchy[areaKey].machines[machineKey].elements || {};
-    return Object.keys(elements).map(elementKey => ({
-      key: elementKey,
-      name: elements[elementKey].display_name,
-      description: elements[elementKey].description,
-      area: areaKey,
-      machine: machineKey
-    }));
+    const elements = hierarchy[areaKey][machineKey];
+    
+    if (Array.isArray(elements)) {
+      // Si es un array, son elementos directos
+      return elements.map((element, index) => ({
+        key: element.toString(),
+        name: element.toString(),
+        machine: machineKey,
+        area: areaKey
+      }));
+    } else if (typeof elements === 'object') {
+      // Si es un objeto, son elementos con sub-elementos
+      return Object.keys(elements).map(elementKey => ({
+        key: elementKey,
+        name: elementKey.charAt(0).toUpperCase() + elementKey.slice(1),
+        machine: machineKey,
+        area: areaKey
+      }));
+    }
+
+    return [];
   }
 
   /**
@@ -96,80 +108,63 @@ class EquipmentService {
   async getComponentsByElement(areaKey, machineKey, elementKey) {
     const hierarchy = await this.getEquipmentHierarchy();
     
-    if (!hierarchy[areaKey]) {
-      throw new Error(`Área '${areaKey}' no encontrada`);
+    if (!hierarchy[areaKey] || !hierarchy[areaKey][machineKey]) {
+      throw new Error(`Ruta de equipo no válida: ${areaKey}/${machineKey}`);
     }
 
-    if (!hierarchy[areaKey].machines[machineKey]) {
-      throw new Error(`Máquina '${machineKey}' no encontrada en área '${areaKey}'`);
-    }
-
-    if (!hierarchy[areaKey].machines[machineKey].elements[elementKey]) {
-      throw new Error(`Elemento '${elementKey}' no encontrado en máquina '${machineKey}'`);
-    }
-
-    const element = hierarchy[areaKey].machines[machineKey].elements[elementKey];
-    const components = element.components || [];
+    const machine = hierarchy[areaKey][machineKey];
     
-    return components.map((component, index) => ({
-      key: `component_${index}`,
-      name: component,
-      area: areaKey,
-      machine: machineKey,
-      element: elementKey
-    }));
+    // Si la máquina contiene un objeto con el elemento
+    if (typeof machine === 'object' && machine[elementKey]) {
+      const element = machine[elementKey];
+      
+      if (Array.isArray(element)) {
+        return element.map(component => ({
+          key: component.toString(),
+          name: component.toString(),
+          element: elementKey,
+          machine: machineKey,
+          area: areaKey
+        }));
+      } else if (typeof element === 'object') {
+        return Object.keys(element).map(componentKey => ({
+          key: componentKey,
+          name: componentKey.charAt(0).toUpperCase() + componentKey.slice(1),
+          element: elementKey,
+          machine: machineKey,
+          area: areaKey
+        }));
+      }
+    }
+
+    return [];
   }
 
   /**
-   * Obtener ruta completa de un equipo
+   * Construir la ruta completa de un equipo
    */
   async getEquipmentPath(areaKey, machineKey = null, elementKey = null, componentName = null) {
-    const hierarchy = await this.getEquipmentHierarchy();
-    
-    let path = [];
-    let displayPath = [];
+    const path = [areaKey];
+    const display = [areaKey.charAt(0).toUpperCase() + areaKey.slice(1)];
 
-    // Área
-    if (hierarchy[areaKey]) {
-      path.push({ level: 'area', key: areaKey, name: hierarchy[areaKey].display_name });
-      displayPath.push(hierarchy[areaKey].display_name);
-    } else {
-      throw new Error(`Área '${areaKey}' no encontrada`);
+    if (machineKey) {
+      path.push(machineKey);
+      display.push(machineKey.charAt(0).toUpperCase() + machineKey.slice(1));
     }
 
-    // Máquina
-    if (machineKey && hierarchy[areaKey].machines[machineKey]) {
-      path.push({ 
-        level: 'machine', 
-        key: machineKey, 
-        name: hierarchy[areaKey].machines[machineKey].display_name 
-      });
-      displayPath.push(hierarchy[areaKey].machines[machineKey].display_name);
-    } else if (machineKey) {
-      throw new Error(`Máquina '${machineKey}' no encontrada en área '${areaKey}'`);
+    if (elementKey) {
+      path.push(elementKey);
+      display.push(elementKey.toString());
     }
 
-    // Elemento
-    if (elementKey && machineKey && hierarchy[areaKey].machines[machineKey].elements[elementKey]) {
-      path.push({ 
-        level: 'element', 
-        key: elementKey, 
-        name: hierarchy[areaKey].machines[machineKey].elements[elementKey].display_name 
-      });
-      displayPath.push(hierarchy[areaKey].machines[machineKey].elements[elementKey].display_name);
-    } else if (elementKey) {
-      throw new Error(`Elemento '${elementKey}' no encontrado`);
-    }
-
-    // Componente
     if (componentName) {
-      path.push({ level: 'component', key: componentName, name: componentName });
-      displayPath.push(componentName);
+      path.push(componentName);
+      display.push(componentName.toString());
     }
 
     return {
       path: JSON.stringify(path),
-      display: displayPath.join(' → '),
+      display: display.join(' > '),
       area: areaKey,
       machine: machineKey,
       element: elementKey,
@@ -178,95 +173,94 @@ class EquipmentService {
   }
 
   /**
-   * Buscar equipos por texto
+   * Buscar equipos por término
    */
   async searchEquipment(searchTerm) {
     const hierarchy = await this.getEquipmentHierarchy();
     const results = [];
     const term = searchTerm.toLowerCase();
 
-    Object.keys(hierarchy).forEach(areaKey => {
-      const area = hierarchy[areaKey];
-      
+    for (const [areaKey, area] of Object.entries(hierarchy)) {
       // Buscar en área
-      if (area.display_name.toLowerCase().includes(term) || 
-          area.description.toLowerCase().includes(term)) {
+      if (areaKey.toLowerCase().includes(term)) {
         results.push({
           type: 'area',
           area: areaKey,
-          name: area.display_name,
-          description: area.description,
-          path: area.display_name
+          path: areaKey,
+          display: areaKey.charAt(0).toUpperCase() + areaKey.slice(1)
         });
       }
 
       // Buscar en máquinas
-      if (area.machines) {
-        Object.keys(area.machines).forEach(machineKey => {
-          const machine = area.machines[machineKey];
-          
-          if (machine.display_name.toLowerCase().includes(term) || 
-              machine.description.toLowerCase().includes(term)) {
-            results.push({
-              type: 'machine',
-              area: areaKey,
-              machine: machineKey,
-              name: machine.display_name,
-              description: machine.description,
-              path: `${area.display_name} → ${machine.display_name}`
-            });
-          }
+      for (const [machineKey, machine] of Object.entries(area)) {
+        if (machineKey.toLowerCase().includes(term)) {
+          results.push({
+            type: 'machine',
+            area: areaKey,
+            machine: machineKey,
+            path: `${areaKey} > ${machineKey}`,
+            display: `${areaKey.charAt(0).toUpperCase() + areaKey.slice(1)} > ${machineKey}`
+          });
+        }
 
-          // Buscar en elementos
-          if (machine.elements) {
-            Object.keys(machine.elements).forEach(elementKey => {
-              const element = machine.elements[elementKey];
-              
-              if (element.display_name.toLowerCase().includes(term) || 
-                  element.description.toLowerCase().includes(term)) {
-                results.push({
-                  type: 'element',
-                  area: areaKey,
-                  machine: machineKey,
-                  element: elementKey,
-                  name: element.display_name,
-                  description: element.description,
-                  path: `${area.display_name} → ${machine.display_name} → ${element.display_name}`
-                });
-              }
-
-              // Buscar en componentes
-              if (element.components) {
-                element.components.forEach((component, index) => {
-                  if (component.toLowerCase().includes(term)) {
-                    results.push({
-                      type: 'component',
-                      area: areaKey,
-                      machine: machineKey,
-                      element: elementKey,
-                      component: component,
-                      name: component,
-                      description: `Componente de ${element.display_name}`,
-                      path: `${area.display_name} → ${machine.display_name} → ${element.display_name} → ${component}`
-                    });
-                  }
-                });
-              }
-            });
+        // Buscar en elementos
+        if (Array.isArray(machine)) {
+          machine.forEach(element => {
+            if (element.toString().toLowerCase().includes(term)) {
+              results.push({
+                type: 'element',
+                area: areaKey,
+                machine: machineKey,
+                element: element.toString(),
+                path: `${areaKey} > ${machineKey} > ${element}`,
+                display: `${areaKey} > ${machineKey} > ${element}`
+              });
+            }
+          });
+        } else if (typeof machine === 'object') {
+          for (const [elementKey, element] of Object.entries(machine)) {
+            if (elementKey.toLowerCase().includes(term)) {
+              results.push({
+                type: 'element',
+                area: areaKey,
+                machine: machineKey,
+                element: elementKey,
+                path: `${areaKey} > ${machineKey} > ${elementKey}`,
+                display: `${areaKey} > ${machineKey} > ${elementKey}`
+              });
+            }
           }
-        });
+        }
       }
-    });
+    }
 
     return results;
   }
 
   /**
-   * Validar que una ruta de equipo existe
+   * Validar si una ruta de equipo es válida
    */
   async validateEquipmentPath(areaKey, machineKey = null, elementKey = null, componentName = null) {
     try {
-      await this.getEquipmentPath(areaKey, machineKey, elementKey, componentName);
+      const hierarchy = await this.getEquipmentHierarchy();
+
+      if (!hierarchy[areaKey]) {
+        return false;
+      }
+
+      if (machineKey && !hierarchy[areaKey][machineKey]) {
+        return false;
+      }
+
+      if (elementKey && machineKey) {
+        const machine = hierarchy[areaKey][machineKey];
+        if (Array.isArray(machine)) {
+          return machine.includes(elementKey) || machine.includes(parseInt(elementKey));
+        } else if (typeof machine === 'object') {
+          return machine.hasOwnProperty(elementKey);
+        }
+      }
+
       return true;
     } catch (error) {
       return false;
@@ -274,15 +268,33 @@ class EquipmentService {
   }
 
   /**
-   * Obtener metadatos del sistema de equipos
+   * Obtener metadatos de la jerarquía
    */
   async getMetadata() {
-    const data = await this.loadEquipmentData();
+    const hierarchy = await this.getEquipmentHierarchy();
+    const areas = Object.keys(hierarchy);
+    let totalMachines = 0;
+    let totalElements = 0;
+
+    areas.forEach(areaKey => {
+      const machines = Object.keys(hierarchy[areaKey]);
+      totalMachines += machines.length;
+
+      machines.forEach(machineKey => {
+        const machine = hierarchy[areaKey][machineKey];
+        if (Array.isArray(machine)) {
+          totalElements += machine.length;
+        } else if (typeof machine === 'object') {
+          totalElements += Object.keys(machine).length;
+        }
+      });
+    });
+
     return {
-      metadata: data.metadata,
-      maintenance_types: data.maintenance_types,
-      priority_levels: data.priority_levels,
-      status_options: data.status_options
+      totalAreas: areas.length,
+      totalMachines,
+      totalElements,
+      areas: areas
     };
   }
 
@@ -290,41 +302,32 @@ class EquipmentService {
    * Obtener estadísticas de la jerarquía
    */
   async getHierarchyStats() {
+    const metadata = await this.getMetadata();
     const hierarchy = await this.getEquipmentHierarchy();
-    
-    let totalAreas = 0;
-    let totalMachines = 0;
-    let totalElements = 0;
-    let totalComponents = 0;
 
-    Object.keys(hierarchy).forEach(areaKey => {
-      totalAreas++;
-      const area = hierarchy[areaKey];
-      
-      if (area.machines) {
-        Object.keys(area.machines).forEach(machineKey => {
-          totalMachines++;
-          const machine = area.machines[machineKey];
-          
-          if (machine.elements) {
-            Object.keys(machine.elements).forEach(elementKey => {
-              totalElements++;
-              const element = machine.elements[elementKey];
-              
-              if (element.components) {
-                totalComponents += element.components.length;
-              }
-            });
-          }
-        });
-      }
+    const areaStats = Object.keys(hierarchy).map(areaKey => {
+      const machines = Object.keys(hierarchy[areaKey]);
+      let elements = 0;
+
+      machines.forEach(machineKey => {
+        const machine = hierarchy[areaKey][machineKey];
+        if (Array.isArray(machine)) {
+          elements += machine.length;
+        } else if (typeof machine === 'object') {
+          elements += Object.keys(machine).length;
+        }
+      });
+
+      return {
+        area: areaKey,
+        machines: machines.length,
+        elements
+      };
     });
 
     return {
-      total_areas: totalAreas,
-      total_machines: totalMachines,
-      total_elements: totalElements,
-      total_components: totalComponents
+      ...metadata,
+      areaStats
     };
   }
 }

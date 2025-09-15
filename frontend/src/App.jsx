@@ -84,7 +84,15 @@ function AppContent() {
             } 
           />
           <Route 
-            path="/reports/new" 
+            path="/reports/create" 
+            element={
+              <ProtectedRoute>
+                <CreateReport />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/reports/:id/edit" 
             element={
               <ProtectedRoute>
                 <CreateReport />
