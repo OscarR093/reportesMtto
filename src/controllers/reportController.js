@@ -194,43 +194,40 @@ class ReportController {
         issue_type,
         equipment_area,
         equipment_machine,
-        assigned_to,
-        user_id,
-        date_from,
-        date_to,
         search,
         sort_by,
-        sort_order
+        sort_order,
+        date, // Nueva fecha para filtrar
+        shift // Nuevo turno para filtrar
       } = req.query;
 
       const filters = {};
-      const pagination = { 
-        page: parseInt(page), 
-        limit: Math.min(parseInt(limit), 100) // Máximo 100 por página
+      
+      // Aplicar filtros simples
+      if (status && status !== 'all') filters.status = status;
+      if (priority && priority !== 'all') filters.priority = priority;
+      if (issue_type && issue_type !== 'all') filters.issue_type = issue_type;
+      if (equipment_area && equipment_area !== 'all') filters.equipment_area = equipment_area;
+      if (equipment_machine && equipment_machine !== 'all') filters.equipment_machine = equipment_machine;
+      if (search) filters.search = search;
+      if (date) filters.date = date; // Filtro por fecha
+      if (shift && shift !== 'all') filters.shift = shift; // Filtro por turno
+
+      const pagination = {
+        page: parseInt(page),
+        limit: parseInt(limit)
       };
 
-      // Aplicar filtros
-      if (status) filters.status = status.split(',');
-      if (priority) filters.priority = priority.split(',');
-      if (issue_type) filters.issue_type = issue_type.split(',');
-      if (equipment_area) filters.equipment_area = equipment_area;
-      if (equipment_machine) filters.equipment_machine = equipment_machine;
-      if (assigned_to) filters.assigned_to = assigned_to;
-      if (user_id) filters.user_id = user_id;
-      if (date_from) filters.date_from = date_from;
-      if (date_to) filters.date_to = date_to;
-      if (search) filters.search = search;
-      if (sort_by) filters.sort_by = sort_by;
-      if (sort_order) filters.sort_order = sort_order;
-
-      const result = await reportService.getReports(filters, pagination);
+      const result = await reportService.getReports({ ...filters, sort_by, sort_order }, pagination);
       
       res.status(200).json({
         success: true,
-        data: result.reports,
-        pagination: result.pagination
+        data: result.reports.map(report => report.toSafeJSON()),
+        pagination: result.pagination,
+        message: 'Reportes obtenidos exitosamente'
       });
     } catch (error) {
+      console.error('Error obteniendo reportes:', error);
       next(error);
     }
   }

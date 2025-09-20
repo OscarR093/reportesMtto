@@ -261,27 +261,15 @@ class ReportService {
       }
 
       if (filters.status) {
-        if (Array.isArray(filters.status)) {
-          where.status = { [Op.in]: filters.status };
-        } else {
-          where.status = filters.status;
-        }
+        where.status = filters.status;
       }
 
       if (filters.priority) {
-        if (Array.isArray(filters.priority)) {
-          where.priority = { [Op.in]: filters.priority };
-        } else {
-          where.priority = filters.priority;
-        }
+        where.priority = filters.priority;
       }
 
       if (filters.issue_type) {
-        if (Array.isArray(filters.issue_type)) {
-          where.issue_type = { [Op.in]: filters.issue_type };
-        } else {
-          where.issue_type = filters.issue_type;
-        }
+        where.issue_type = filters.issue_type;
       }
 
       if (filters.equipment_area) {
@@ -292,15 +280,42 @@ class ReportService {
         where.equipment_machine = filters.equipment_machine;
       }
 
-      if (filters.date_from) {
-        where.created_at = { [Op.gte]: new Date(filters.date_from) };
-      }
-
-      if (filters.date_to) {
-        where.created_at = { 
-          ...where.created_at, 
-          [Op.lte]: new Date(filters.date_to) 
-        };
+      // Filtro por fecha y turno
+      if (filters.date) {
+        const selectedDate = new Date(filters.date);
+        
+        if (filters.shift) {
+          // Filtro por turno específico
+          let shiftStart, shiftEnd;
+          
+          if (filters.shift === 'morning') {
+            // Turno matutino: 6:00 - 17:59 del día seleccionado
+            shiftStart = new Date(selectedDate);
+            shiftStart.setHours(6, 0, 0, 0);
+            shiftEnd = new Date(selectedDate);
+            shiftEnd.setHours(17, 59, 59, 999);
+          } else if (filters.shift === 'evening') {
+            // Turno vespertino: 18:00 del día anterior - 5:59 del día seleccionado
+            // Cuando seleccionamos el día X para el turno vespertino, queremos ver:
+            // - Las horas de 18:00 del día X-1 hasta las 5:59 del día X
+            const previousDay = new Date(selectedDate);
+            previousDay.setDate(previousDay.getDate() - 1);        
+            shiftStart = new Date(previousDay);
+            shiftStart.setHours(18, 0, 0, 0);
+            shiftEnd = new Date(selectedDate);
+            shiftEnd.setHours(5, 59, 59, 999);
+          }
+          
+          if (shiftStart && shiftEnd) {
+            where.created_at = {
+              [Op.gte]: shiftStart,
+              [Op.lte]: shiftEnd
+            };
+          }
+        } else {
+          // No aplicar filtro por fecha si no se especifica turno
+          // Esto permite que el frontend maneje la lógica de mostrar ambos turnos
+        }
       }
 
       if (filters.search) {
@@ -317,8 +332,7 @@ class ReportService {
         const sortDirection = filters.sort_order === 'asc' ? 'ASC' : 'DESC';
         order.push([filters.sort_by, sortDirection]);
       } else {
-        // Ordenamiento por defecto: prioridad y fecha
-        order.push(['priority', 'DESC']);
+        // Ordenamiento por defecto: fecha descendente
         order.push(['created_at', 'DESC']);
       }
 
@@ -327,30 +341,13 @@ class ReportService {
 
       const { count, rows } = await Report.findAndCountAll({
         where,
-        include: [
-          {
-            model: User,
-            as: 'Creator',
-            attributes: ['id', 'name', 'email', 'role']
-          },
-          {
-            model: User,
-            as: 'AssignedTechnician',
-            attributes: ['id', 'name', 'email', 'role']
-          },
-          {
-            model: User,
-            as: 'Reviewer',
-            attributes: ['id', 'name', 'email', 'role']
-          }
-        ],
         order,
         limit: pagination.limit,
         offset
       });
 
       return {
-        reports: rows.map(report => report.toSafeJSON()),
+        reports: rows,
         pagination: {
           total: count,
           page: pagination.page,

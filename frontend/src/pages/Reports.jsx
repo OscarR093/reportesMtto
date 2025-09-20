@@ -10,7 +10,8 @@ import {
   ClockIcon,
   UserIcon,
   WrenchScrewdriverIcon,
-  XMarkIcon
+  XMarkIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import { useAuth } from '../hooks/useAuth';
@@ -20,14 +21,14 @@ import { formatDateTime } from '../utils/helpers';
 const Reports = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [reports, setReports] = useState([]);
+  const [morningReports, setMorningReports] = useState([]); // Reportes del turno matutino
+  const [eveningReports, setEveningReports] = useState([]); // Reportes del turno vespertino
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Fecha actual por defecto
   const [selectedReport, setSelectedReport] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -54,56 +55,16 @@ const Reports = () => {
     { value: 'mecanizado', label: 'Mecanizado' }
   ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        
-        const params = new URLSearchParams({
-          page: currentPage,
-          limit: 10
-        });
-
-        if (filterStatus !== 'all') params.append('status', filterStatus);
-        if (filterPriority !== 'all') params.append('priority', filterPriority);
-        if (filterArea !== 'all') params.append('equipment_area', filterArea);
-        if (searchTerm) params.append('search', searchTerm);
-
-        const response = await fetch(`http://localhost:3000/api/reports?${params}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setReports(data.data || []);
-          if (data.pagination) {
-            setTotalPages(Math.ceil(data.pagination.total / data.pagination.limit));
-          }
-        } else {
-          toast.error('Error al cargar los reportes');
-        }
-      } catch (error) {
-        console.error('Error fetching reports:', error);
-        toast.error('Error de conexión');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [currentPage, filterStatus, filterPriority, filterArea, searchTerm]);
-
-  const fetchReports = async () => {
+  // Función para obtener reportes por turno
+  const fetchReportsByShift = async (shift) => {
     try {
-      setLoading(true);
       const token = localStorage.getItem('token');
       
       const params = new URLSearchParams({
-        page: currentPage,
-        limit: 10
+        page: 1,
+        limit: 100, // Obtener todos los reportes para el turno
+        date: selectedDate,
+        shift: shift
       });
 
       if (filterStatus !== 'all') params.append('status', filterStatus);
@@ -119,20 +80,38 @@ const Reports = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setReports(data.data || []);
-        if (data.pagination) {
-          setTotalPages(Math.ceil(data.pagination.total / data.pagination.limit));
-        }
+        return data.data || [];
       } else {
-        toast.error('Error al cargar los reportes');
+        toast.error(`Error al cargar los reportes del turno ${shift}`);
+        return [];
       }
     } catch (error) {
-      console.error('Error fetching reports:', error);
+      console.error(`Error fetching reports for shift ${shift}:`, error);
       toast.error('Error de conexión');
+      return [];
+    }
+  };
+
+  // Función para obtener todos los reportes
+  const fetchAllReports = async () => {
+    setLoading(true);
+    try {
+      // Obtener reportes del turno matutino
+      const morning = await fetchReportsByShift('morning');
+      setMorningReports(morning);
+      
+      // Obtener reportes del turno vespertino
+      const evening = await fetchReportsByShift('evening');
+      setEveningReports(evening);
     } finally {
       setLoading(false);
     }
   };
+
+  // Efecto para cargar reportes cuando cambian los filtros o la fecha
+  useEffect(() => {
+    fetchAllReports();
+  }, [selectedDate, filterStatus, filterPriority, filterArea, searchTerm]);
 
   const handleDeleteReport = async (reportId) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este reporte?')) {
@@ -149,7 +128,8 @@ const Reports = () => {
       });
 
       if (response.ok) {
-        setReports(reports.filter(report => report.id !== reportId));
+        // Recargar reportes después de eliminar
+        fetchAllReports();
         toast.success('Reporte eliminado correctamente');
       } else {
         const error = await response.json();
@@ -174,7 +154,8 @@ const Reports = () => {
       });
 
       if (response.ok) {
-        await fetchReports(); // Refrescar la lista
+        // Recargar reportes después de cambiar el estado
+        fetchAllReports();
         toast.success('Estado actualizado correctamente');
       } else {
         const error = await response.json();
@@ -250,8 +231,171 @@ const Reports = () => {
     setShowModal(true);
   };
 
-  // Ordenar los reportes por fecha descendente (más nuevos arriba)
-  const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Función para renderizar una tabla de reportes
+  const renderReportsTable = (reports, shiftTitle) => {
+    if (loading) {
+      return (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      );
+    }
+
+    if (reports.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <WrenchScrewdriverIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reportes</h3>
+          <p className="text-gray-600">
+            No se encontraron reportes para este turno
+          </p>
+        </div>
+      );
+    }
+
+    // Ordenar los reportes por fecha descendente (más nuevos arriba)
+    const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Reporte
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Equipo
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Prioridad
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estado
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Técnico
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Fecha
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {sortedReports.map((report) => (
+              <tr key={report.id} className="hover:bg-gray-50 cursor-pointer transition-colors duration-150" onClick={() => viewReportDetails(report)}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col items-start">
+                    <div className="text-base font-bold text-gray-900 mb-1">
+                      {report.description ? report.description : 'Sin descripción'}
+                    </div>
+                    <div className="text-sm text-gray-500 mb-1">
+                      {report.title} {report.createdAt && `(${formatDate(report.createdAt)})`}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {report.issue_type}
+                    </div>
+                    {report.evidence_images && (() => {
+                      try {
+                        const images = JSON.parse(report.evidence_images);
+                        return images.length > 0 && (
+                          <div className="flex items-center mt-1">
+                            <PhotoIcon className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-xs text-gray-500">
+                              {images.length} imagen(es)
+                            </span>
+                          </div>
+                        );
+                      } catch {
+                        return null;
+                      }
+                    })()}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {report.equipment_display || `${report.equipment_area}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
+                    {report.priority}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {(user?.role === 'admin' || user?.role === 'super_admin') && report.status !== 'cerrado' ? (
+                    <select
+                      value={report.status}
+                      onChange={(e) => {
+                        e.stopPropagation(); // Evitar que se abra el modal
+                        handleStatusChange(report.id, e.target.value);
+                      }}
+                      className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${getStatusColor(report.status)}`}
+                      onClick={(e) => e.stopPropagation()} // Evitar que se abra el modal
+                    >
+                      <option value="abierto">Abierto</option>
+                      <option value="cerrado">Cerrado</option>
+                    </select>
+                  ) : (
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
+                      {report.status}
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+                    <div className="text-sm text-gray-900">
+                      {report.technician_name}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
+                    <div className="text-sm text-gray-900">
+                      {formatDate(report.createdAt)}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                    {canEditReport(report) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/reports/${report.id}/edit`);
+                        }}
+                        className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
+                        title="Editar"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                    {canDeleteReport(report) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteReport(report.id);
+                        }}
+                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                        title="Eliminar"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const handleDownload = async (url) => {
     try {
@@ -277,7 +421,7 @@ const Reports = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Reportes de Mantenimiento</h1>
-            <p className="text-gray-600">Gestiona y supervisa todos los reportes</p>
+            <p className="text-gray-600">Gestiona y supervisa todos los reportes por turno</p>
           </div>
           <Link
             to="/reports/create"
@@ -288,18 +432,17 @@ const Reports = () => {
           </Link>
         </div>
 
-        {/* Filtros */}
+        {/* Selector de Fecha y Filtros */}
         <div className="card">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {/* Búsqueda */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            {/* Selector de Fecha */}
             <div className="lg:col-span-2">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
-                  type="text"
-                  placeholder="Buscar reportes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
                   className="input-field pl-10"
                 />
               </div>
@@ -347,204 +490,48 @@ const Reports = () => {
                 ))}
               </select>
             </div>
+
+            {/* Búsqueda */}
+            <div>
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar reportes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input-field pl-10"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Lista de Reportes */}
+        {/* Tabla de Reportes del Turno Matutino */}
         <div className="card">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          ) : reports.length === 0 ? (
-            <div className="text-center py-12">
-              <WrenchScrewdriverIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reportes</h3>
-              <p className="text-gray-600 mb-4">
-                {searchTerm || filterStatus !== 'all' || filterPriority !== 'all' || filterArea !== 'all'
-                  ? 'No se encontraron reportes con los filtros aplicados'
-                  : 'Aún no se han creado reportes'
-                }
-              </p>
-              <Link to="/reports/create" className="btn-primary">
-                Crear Primer Reporte
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Reporte
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Equipo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Prioridad
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Técnico
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedReports.map((report) => (
-                    <tr key={report.id} className="hover:bg-gray-50 cursor-pointer transition-colors duration-150" onClick={() => viewReportDetails(report)}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-col items-start">
-                          <div className="text-base font-bold text-gray-900 mb-1">
-                            {report.description ? report.description : 'Sin descripción'}
-                          </div>
-                          <div className="text-sm text-gray-500 mb-1">
-                            {report.title} {report.createdAt && `(${formatDate(report.createdAt)})`}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {report.issue_type}
-                          </div>
-                          {report.evidence_images && (() => {
-                            try {
-                              const images = JSON.parse(report.evidence_images);
-                              return images.length > 0 && (
-                                <div className="flex items-center mt-1">
-                                  <PhotoIcon className="h-4 w-4 text-gray-400 mr-1" />
-                                  <span className="text-xs text-gray-500">
-                                    {images.length} imagen(es)
-                                  </span>
-                                </div>
-                              );
-                            } catch {
-                              return null;
-                            }
-                          })()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {report.equipment_display || `${report.equipment_area}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
-                          {report.priority}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {(user?.role === 'admin' || user?.role === 'super_admin') && report.status !== 'cerrado' ? (
-                          <select
-                            value={report.status}
-                            onChange={(e) => {
-                              e.stopPropagation(); // Evitar que se abra el modal
-                              handleStatusChange(report.id, e.target.value);
-                            }}
-                            className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${getStatusColor(report.status)}`}
-                            onClick={(e) => e.stopPropagation()} // Evitar que se abra el modal
-                          >
-                            <option value="abierto">Abierto</option>
-                            <option value="cerrado">Cerrado</option>
-                          </select>
-                        ) : (
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
-                            {report.status}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <div className="text-sm text-gray-900">
-                            {report.technician_name}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
-                          <div className="text-sm text-gray-900">
-                            {formatDate(report.createdAt)}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-                          {canEditReport(report) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/reports/${report.id}/edit`);
-                              }}
-                              className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
-                              title="Editar"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                          )}
-                          {canDeleteReport(report) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteReport(report.id);
-                              }}
-                              className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                              title="Eliminar"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Turno Matutino (6:00 - 17:59)
+            </h2>
+            <span className="text-sm text-gray-500">
+              {morningReports.length} reportes
+            </span>
+          </div>
+          {renderReportsTable(morningReports, 'Matutino')}
         </div>
 
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="flex justify-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 text-sm border rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-2 text-sm border rounded-md ${
-                  currentPage === page 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'hover:bg-gray-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 text-sm border rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Siguiente
-            </button>
+        {/* Tabla de Reportes del Turno Vespertino */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Turno Vespertino (18:00 - 5:59)
+            </h2>
+            <span className="text-sm text-gray-500">
+              {eveningReports.length} reportes
+            </span>
           </div>
-        )}
+          {renderReportsTable(eveningReports, 'Vespertino')}
+        </div>
 
         {/* Modal de Detalles */}
         {showModal && selectedReport && (
