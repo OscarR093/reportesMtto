@@ -10,7 +10,12 @@ const setupPassport = () => {
     scope: ['profile', 'email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
-      console.log('Google OAuth profile:', profile.id, profile.displayName);
+      console.log('Google OAuth profile recibido:', {
+        id: profile.id,
+        displayName: profile.displayName,
+        emails: profile.emails,
+        photos: profile.photos ? profile.photos[0] : null
+      });
       
       // En una aplicación real, aquí guardarías el usuario en la base de datos
       const user = {
@@ -31,10 +36,12 @@ const setupPassport = () => {
   }));
 
   passport.serializeUser((user, done) => {
+    console.log('Serializando usuario:', user.id);
     done(null, user);
   });
 
   passport.deserializeUser((user, done) => {
+    console.log('Deserializando usuario:', user.id);
     done(null, user);
   });
 };

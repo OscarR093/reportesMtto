@@ -15,6 +15,7 @@ import {
 import Layout from '../components/Layout';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
+import { formatDateTime } from '../utils/helpers';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -221,27 +222,7 @@ const Reports = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Fecha no disponible';
-    
-    try {
-      const date = new Date(dateString);
-      
-      // Verificar si la fecha es válida
-      if (isNaN(date.getTime())) {
-        return 'Fecha inválida';
-      }
-      
-      return date.toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      console.error('Error formateando fecha:', error);
-      return 'Error en fecha';
-    }
+    return formatDateTime(dateString);
   };
 
   const canEditReport = (report) => {
@@ -274,7 +255,7 @@ const Reports = () => {
   };
 
   // Ordenar los reportes por fecha descendente (más nuevos arriba)
-  const sortedReports = [...reports].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const handleDownload = async (url) => {
     try {
@@ -430,7 +411,7 @@ const Reports = () => {
                             {report.description ? report.description : 'Sin descripción'}
                           </div>
                           <div className="text-sm text-gray-500 mb-1">
-                            {report.title} {report.created_at && `(${formatDate(report.created_at)})`}
+                            {report.title} {report.createdAt && `(${formatDate(report.createdAt)})`}
                           </div>
                           <div className="text-xs text-gray-500">
                             {report.issue_type}
@@ -498,7 +479,7 @@ const Reports = () => {
                         <div className="flex items-center">
                           <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
                           <div className="text-sm text-gray-900">
-                            {formatDate(report.created_at)}
+                            {formatDate(report.createdAt)}
                           </div>
                         </div>
                       </td>
@@ -608,7 +589,7 @@ const Reports = () => {
                         </span>
                       </p>
                       <p><strong>Técnico:</strong> {selectedReport.technician_name}</p>
-                      <p><strong>Fecha:</strong> {formatDate(selectedReport.created_at)}</p>
+                      <p><strong>Fecha:</strong> {formatDate(selectedReport.createdAt)}</p>
                     </div>
                   </div>
                   

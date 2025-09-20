@@ -1,14 +1,10 @@
-import express from 'express';
-import dashboardController from '../controllers/dashboardController.js';
+import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth.js';
+import dashboardController from '../controllers/dashboardController.js';
 
-const router = express.Router();
+const router = Router();
 
-/**
- * @route   GET /dashboard
- * @desc    Obtener datos del dashboard (estadísticas y reportes recientes)
- * @access  Private
- */
+// Dashboard routes
 router.get('/', authenticateToken, dashboardController.getDashboardData);
 
 export default router;

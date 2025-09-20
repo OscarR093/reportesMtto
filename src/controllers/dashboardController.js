@@ -48,11 +48,11 @@ class DashboardController {
         where: req.user.role === 'super_admin' || req.user.role === 'admin' 
           ? {} 
           : { user_id: req.user.id },
-        order: [['created_at', 'DESC']],
+        order: [['createdAt', 'DESC']],
         limit: 5,
         attributes: [
           'id', 'title', 'status', 'priority', 
-          'equipment_display', 'created_at'
+          'equipment_display', 'createdAt'
         ]
       });
 

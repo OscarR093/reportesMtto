@@ -1,4 +1,4 @@
-import sequelize from '../config/database.js';
+import sequelize from '../database/connection.js';
 import User from './User.js';
 import Report from './Report.js';
 

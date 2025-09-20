@@ -105,7 +105,10 @@ class AuthController {
    */
   oauthCallback = async (req, res, next) => {
     try {
+      console.log('OAuth callback recibido. req.user:', req.user);
+      
       if (!req.user) {
+        console.error('❌ No se recibió usuario en OAuth callback');
         return res.status(400).json({
           success: false,
           message: 'No se pudo obtener información del usuario'
@@ -116,13 +119,16 @@ class AuthController {
       
       // Buscar o crear usuario en la base de datos
       const { user, isNew, isSuperAdmin } = await userService.findOrCreateFromOAuth(req.user);
+      console.log('Usuario procesado en DB:', { userId: user.id, isNew, isSuperAdmin });
       
       // Verificar acceso del usuario
       const accessCheck = userService.checkUserAccess(user);
+      console.log('Verificación de acceso:', accessCheck);
       
       if (!accessCheck.hasAccess) {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
         const redirectUrl = `${frontendUrl}/auth/callback?error=access_denied&message=${encodeURIComponent(accessCheck.message)}`;
+        console.log('Redirigiendo por acceso denegado:', redirectUrl);
         return res.redirect(redirectUrl);
       }
 
@@ -139,15 +145,17 @@ class AuthController {
       };
 
       const token = authService.generateToken(tokenPayload);
+      console.log('Token generado para usuario:', user.id);
 
       // En lugar de devolver JSON, redirigir al frontend con el token
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
       const redirectUrl = `${frontendUrl}/auth/callback?token=${token}&success=true`;
+      console.log('Redirigiendo al frontend:', redirectUrl);
       
       res.redirect(redirectUrl);
 
     } catch (error) {
-      console.error('Error en OAuth callback:', error);
+      console.error('❌ Error en OAuth callback:', error);
       next(error);
     }
   };

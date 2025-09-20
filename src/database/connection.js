@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize';
-import config from './index.js';
+import config from '../config/index.js';
 
 // Configuración de Sequelize para PostgreSQL
 const sequelize = new Sequelize(

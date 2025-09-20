@@ -5,7 +5,7 @@ import passport from 'passport';
 
 import config from './config/index.js';
 import setupPassport from './config/passport.js';
-import { connectDatabase } from './config/database.js';
+import { connectDatabase } from './database/connection.js';
 import minioService from './services/minioService.js';
 import { authController } from './controllers/authController.js';
 import { userController } from './controllers/userController.js';
