@@ -83,7 +83,7 @@ class ReportController {
           error: error.message
         });
       }
-      if (error.message.includes('permisos')) {
+      if (error.message.includes('permisos') || error.message.includes('inmutable')) {
         return res.status(403).json({
           success: false,
           error: error.message
@@ -171,7 +171,7 @@ class ReportController {
           error: error.message
         });
       }
-      if (error.message.includes('permisos')) {
+      if (error.message.includes('permisos') || error.message.includes('inmutable')) {
         return res.status(403).json({
           success: false,
           error: error.message
@@ -334,7 +334,7 @@ class ReportController {
   }
 
   /**
-   * Eliminar reporte (solo super admin)
+   * Eliminar reporte
    */
   async deleteReport(req, res, next) {
     try {
@@ -345,7 +345,8 @@ class ReportController {
       
       res.status(200).json({
         success: true,
-        message: result.message
+        data: result,
+        message: 'Reporte eliminado exitosamente'
       });
     } catch (error) {
       if (error.message.includes('no encontrado')) {
@@ -354,7 +355,7 @@ class ReportController {
           error: error.message
         });
       }
-      if (error.message.includes('permisos')) {
+      if (error.message.includes('permisos') || error.message.includes('inmutable')) {
         return res.status(403).json({
           success: false,
           error: error.message

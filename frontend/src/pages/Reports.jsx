@@ -36,10 +36,7 @@ const Reports = () => {
   const statusOptions = [
     { value: 'all', label: 'Todos los estados' },
     { value: 'abierto', label: 'Abiertos' },
-    { value: 'en_proceso', label: 'En Proceso' },
-    { value: 'resuelto', label: 'Resueltos' },
-    { value: 'cerrado', label: 'Cerrados' },
-    { value: 'cancelado', label: 'Cancelados' }
+    { value: 'cerrado', label: 'Cerrados' }
   ];
 
   const priorityOptions = [
@@ -226,13 +223,8 @@ const Reports = () => {
   };
 
   const canEditReport = (report) => {
-    // El creador puede editar si no está cerrado o cancelado
-    if (report.user_id === user?.id && !['cerrado', 'cancelado'].includes(report.status)) {
-      return true;
-    }
-    
-    // Los administradores pueden editar cualquier reporte
-    if (user?.role && ['admin', 'super_admin'].includes(user.role)) {
+    // Solo el creador puede editar si el reporte está abierto
+    if (report.user_id === user?.id && report.status === 'abierto') {
       return true;
     }
     
@@ -240,13 +232,17 @@ const Reports = () => {
   };
 
   const canDeleteReport = (report) => {
-    // El creador puede eliminar si no está cerrado o cancelado
-    if (report.user_id === user?.id && !['cerrado', 'cancelado'].includes(report.status)) {
+    // Solo el creador puede eliminar si el reporte está abierto
+    if (report.user_id === user?.id && report.status === 'abierto') {
       return true;
     }
     
-    // Solo super admin puede eliminar cualquier reporte
-    return user?.role === 'super_admin';
+    return false;
+  };
+
+  const canChangeStatus = (report) => {
+    // Solo los administradores pueden cambiar el estado de cualquier reporte
+    return user?.role && ['admin', 'super_admin'].includes(user.role);
   };
 
   const viewReportDetails = (report) => {
@@ -444,7 +440,7 @@ const Reports = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {user?.role && ['admin', 'super_admin'].includes(user.role) ? (
+                        {(user?.role === 'admin' || user?.role === 'super_admin') && report.status !== 'cerrado' ? (
                           <select
                             value={report.status}
                             onChange={(e) => {
@@ -452,14 +448,10 @@ const Reports = () => {
                               handleStatusChange(report.id, e.target.value);
                             }}
                             className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${getStatusColor(report.status)}`}
-                            disabled={report.status === 'cerrado'}
                             onClick={(e) => e.stopPropagation()} // Evitar que se abra el modal
                           >
                             <option value="abierto">Abierto</option>
-                            <option value="en_proceso">En Proceso</option>
-                            <option value="resuelto">Resuelto</option>
                             <option value="cerrado">Cerrado</option>
-                            <option value="cancelado">Cancelado</option>
                           </select>
                         ) : (
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>

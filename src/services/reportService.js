@@ -129,6 +129,11 @@ class ReportService {
         throw new Error('No tienes permisos para editar este reporte');
       }
 
+      // Los reportes cerrados son inmutables
+      if (report.isClosed()) {
+        throw new Error('No se puede editar un reporte cerrado');
+      }
+
       // Validar nuevo equipo si se cambió
       if (updateData.equipment_area && updateData.equipment_area !== report.equipment_area) {
         const isValidEquipment = await equipmentService.validateEquipmentPath(
@@ -213,8 +218,8 @@ class ReportService {
         throw new Error('Reporte no encontrado');
       }
 
-      // Verificar permisos
-      if (!report.canBeEditedBy(user)) {
+      // Verificar permisos para cambiar estado
+      if (!report.canChangeStatus(user)) {
         throw new Error('No tienes permisos para cambiar el estado de este reporte');
       }
 
@@ -467,6 +472,11 @@ class ReportService {
       const report = await Report.findByPk(reportId);
       if (!report) {
         throw new Error('Reporte no encontrado');
+      }
+
+      // Los reportes cerrados son inmutables
+      if (report.isClosed()) {
+        throw new Error('No se puede eliminar un reporte cerrado');
       }
 
       // Solo el creador puede eliminar su propio reporte, y solo si está abierto

@@ -216,11 +216,39 @@ Report.prototype.isHighPriority = function() {
 };
 
 Report.prototype.canBeEditedBy = function(user) {
+  // Los reportes cerrados son inmutables
+  if (this.status === 'cerrado') {
+    return false;
+  }
+  
   // Solo el creador puede editar si el reporte está abierto
   if (this.user_id === user.id && this.status === 'abierto') {
     return true;
   }
   return false;
+};
+
+Report.prototype.canChangeStatus = function(user) {
+  // Los reportes cerrados son inmutables
+  if (this.status === 'cerrado') {
+    return false;
+  }
+  
+  // Solo el creador puede cambiar el estado si el reporte está abierto
+  if (this.user_id === user.id && this.status === 'abierto') {
+    return true;
+  }
+  
+  // Los administradores pueden cambiar el estado de cualquier reporte (excepto cerrados)
+  if (user.role === 'admin' || user.role === 'super_admin') {
+    return true;
+  }
+  
+  return false;
+};
+
+Report.prototype.isClosed = function() {
+  return this.status === 'cerrado';
 };
 
 Report.prototype.toSafeJSON = function() {
