@@ -42,7 +42,7 @@ export const authenticateToken = async (req, res, next) => {
         });
       }
 
-      req.user = fullUser.get({ plain: true }); // Convertir a objeto simple
+      req.user = fullUser; // Mantener la instancia del modelo
       next();
     } catch (error) {
       console.error('Error cargando usuario:', error);
@@ -64,7 +64,7 @@ export const optionalAuth = async (req, res, next) => {
         try {
           const fullUser = await User.findByPk(tokenUser.id);
           if (fullUser) {
-            req.user = fullUser.get({ plain: true });
+            req.user = fullUser; // Mantener la instancia del modelo
           }
         } catch (error) {
           console.error('Error cargando usuario en optionalAuth:', error);

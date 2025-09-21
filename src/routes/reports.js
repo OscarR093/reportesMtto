@@ -5,10 +5,10 @@ import reportController from '../controllers/reportController.js';
 const router = Router();
 
 // Report management routes
-router.get('/', authenticateToken, reportController.getReports);
-router.post('/', authenticateToken, reportController.createReport);
 router.get('/stats', authenticateToken, reportController.getStats);
 router.get('/high-priority', authenticateToken, reportController.getHighPriorityReports);
+router.get('/export', authenticateToken, reportController.exportReports);
+router.get('/', authenticateToken, reportController.getReports);
 
 // User-specific report routes
 router.get('/my', authenticateToken, reportController.getMyReports);

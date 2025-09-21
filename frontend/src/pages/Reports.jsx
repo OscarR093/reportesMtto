@@ -33,6 +33,10 @@ const Reports = () => {
   const [showModal, setShowModal] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerSrc, setImageViewerSrc] = useState(null);
+  const [exporting, setExporting] = useState(false);
+
+  // Verificar si el usuario puede exportar (es admin o super_admin)
+  const canExportReports = user?.role && ['admin', 'super_admin'].includes(user.role);
 
   const statusOptions = [
     { value: 'all', label: 'Todos los estados' },
@@ -315,6 +319,59 @@ const Reports = () => {
     }
   };
 
+  // Función para exportar reportes a Excel
+  const handleExport = async () => {
+    if (!canExportReports) {
+      toast.error('No tienes permisos para exportar reportes');
+      return;
+    }
+
+    try {
+      setExporting(true);
+      const token = localStorage.getItem('token');
+      
+      // Construir parámetros de filtro
+      const params = new URLSearchParams({
+        date: selectedDate
+      });
+      
+      // Agregar filtros solo si no son 'all'
+      if (filterStatus !== 'all') params.append('status', filterStatus);
+      if (filterPriority !== 'all') params.append('priority', filterPriority);
+      if (filterArea !== 'all') params.append('equipment_area', filterArea);
+      if (searchTerm) params.append('search', searchTerm);
+
+      const response = await fetch(`http://localhost:3000/api/reports/export?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al exportar reportes');
+      }
+
+      // Descargar el archivo
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reportes_mantenimiento_${selectedDate}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Reporte exportado exitosamente');
+    } catch (error) {
+      console.error('Error exporting reports:', error);
+      toast.error(error.message || 'Error al exportar reportes');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -323,10 +380,33 @@ const Reports = () => {
             <h1 className="text-2xl font-bold text-gray-900">Reportes de Mantenimiento</h1>
             <p className="text-gray-600">Gestiona y supervisa todos los reportes por turno</p>
           </div>
-          <Link to="/reports/create" className="btn-primary flex items-center">
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Nuevo Reporte
-          </Link>
+          <div className="flex space-x-2">
+            {canExportReports && (
+              <button 
+                onClick={handleExport}
+                disabled={exporting}
+                className="btn-secondary flex items-center"
+              >
+                {exporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Exportar a Excel
+                  </>
+                )}
+              </button>
+            )}
+            <Link to="/reports/create" className="btn-primary flex items-center">
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Nuevo Reporte
+            </Link>
+          </div>
         </div>
 
         <div className="card">

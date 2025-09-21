@@ -1,4 +1,5 @@
 import reportService from '../services/reportService.js';
+import ExcelJS from 'exceljs';
 
 class ReportController {
   /**
@@ -423,6 +424,253 @@ class ReportController {
     } catch (error) {
       next(error);
     }
+  }
+
+  /**
+   * Exportar reportes a Excel (solo administradores)
+   */
+  async exportReports(req, res, next) {
+    try {
+      console.log('🔧 exportReports called!');
+      console.log('🔧 this context:', this);
+      console.log('🔧 this.generateExcel exists:', typeof this.generateExcel);
+      
+      // Verificar permisos de administrador
+      if (!req.user || !req.user.canManageUsers?.()) {
+        return res.status(403).json({
+          success: false,
+          message: 'No autorizado para exportar reportes'
+        });
+      }
+
+      const { date, status, priority, issue_type, equipment_area, equipment_machine, search } = req.query;
+
+      // Aplicar filtros
+      const filters = {};
+      if (date) filters.date = date;
+      if (status && status !== 'all') filters.status = status;
+      if (priority && priority !== 'all') filters.priority = priority;
+      if (issue_type && issue_type !== 'all') filters.issue_type = issue_type;
+      if (equipment_area && equipment_area !== 'all') filters.equipment_area = equipment_area;
+      if (equipment_machine && equipment_machine !== 'all') filters.equipment_machine = equipment_machine;
+      if (search) filters.search = search;
+
+      // Obtener datos para ambos turnos (sin paginación)
+      const morningResult = await reportService.getReports({ 
+        ...filters, 
+        shift: 'morning' 
+      }, { page: 1, limit: 1000 });
+      
+      const eveningResult = await reportService.getReports({ 
+        ...filters, 
+        shift: 'evening' 
+      }, { page: 1, limit: 1000 });
+
+      // Generar Excel con ambos conjuntos de datos
+      console.log('🔧 About to call generateExcel');
+      console.log('🔧 this context:', this);
+      console.log('🔧 this.generateExcel exists:', typeof this.generateExcel);
+      const controller = this;
+      console.log('🔧 controller context:', controller);
+      console.log('🔧 controller.generateExcel exists:', typeof controller.generateExcel);
+      const excelBuffer = await controller.generateExcel(morningResult.reports, eveningResult.reports, date);
+      const filename = `reportes_mantenimiento_${date || 'fecha'}.xlsx`;
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      res.send(excelBuffer);
+    } catch (error) {
+      console.error("Error exportando reportes:", error);
+      console.error("Error stack:", error.stack);
+      next(error);
+    }
+  }
+  /**
+   * Generar archivo Excel con reportes de ambos turnos
+   */
+  async generateExcel(morningReports, eveningReports, date) {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Configurar propiedades del libro
+    workbook.creator = 'Sistema de Reportes de Mantenimiento';
+    workbook.lastModifiedBy = 'Sistema de Reportes de Mantenimiento';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    
+    // Hoja combinada con ambos turnos
+    const worksheet = workbook.addWorksheet(`Reportes ${date || ''}`, {
+      views: [{ zoomScale: 70 }]
+    });
+    
+    // Columnas optimizadas para impresión
+    worksheet.columns = [
+      { header: 'TURNO', key: 'shift', width: 12 },
+      { header: 'HORA', key: 'time', width: 15 },
+      { header: 'TÉCNICO', key: 'technician', width: 25 },
+      { header: 'ÁREA/MÁQUINA', key: 'equipment', width: 25 },
+      { header: 'PRIORIDAD', key: 'priority', width: 12 },
+      { header: 'ESTADO', key: 'status', width: 12 },
+      { header: 'DESCRIPCIÓN DE LA FALLA', key: 'description', width: 50 },
+      { header: 'NOTAS/COMENTARIOS', key: 'notes', width: 40 }
+    ];
+    
+    // Estilo para encabezados
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '4472C4' }
+      };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+    
+    // Altura de fila para mejor legibilidad
+    worksheet.getRow(1).height = 25;
+    
+    // Agregar título para turno matutino
+    worksheet.addRow(['TURNO MATUTINO (6:00 - 17:59)', '', '', '', '', '', '', '']);
+    const morningTitleRow = worksheet.lastRow;
+    morningTitleRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD966' }
+    };
+    morningTitleRow.getCell(1).font = { bold: true, size: 12 };
+    morningTitleRow.height = 20;
+    
+    // Agregar datos de turno matutino
+    morningReports.forEach(report => {
+      const row = worksheet.addRow({
+        shift: 'Matutino',
+        time: report.createdAt ? new Date(report.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+        technician: report.technician_name || '',
+        equipment: `${report.equipment_area || ''}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`,
+        priority: report.priority || '',
+        status: report.status || '',
+        description: report.description || '',
+        notes: report.notes || ''
+      });
+      
+      // Estilo para filas de turno matutino
+      row.eachCell((cell) => {
+        cell.font = { size: 10 };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+      
+      // Resaltar la descripción de la falla
+      row.getCell('description').font = { bold: true, size: 10 };
+      
+      // Colorear según prioridad
+      const priorityCell = row.getCell('priority');
+      switch(report.priority) {
+        case 'critica':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+          break;
+        case 'alta':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
+          break;
+        case 'media':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+          break;
+        case 'baja':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FF00' } };
+          break;
+      }
+    });
+    
+    // Espacio entre turnos
+    worksheet.addRow([]);
+    
+    // Agregar título para turno vespertino
+    worksheet.addRow(['TURNO VESPERTINO (18:00 - 5:59)', '', '', '', '', '', '', '']);
+    const eveningTitleRow = worksheet.lastRow;
+    eveningTitleRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '8FAADC' }
+    };
+    eveningTitleRow.getCell(1).font = { bold: true, size: 12 };
+    eveningTitleRow.height = 20;
+    
+    // Agregar datos de turno vespertino
+    eveningReports.forEach(report => {
+      const row = worksheet.addRow({
+        shift: 'Vespertino',
+        time: report.createdAt ? new Date(report.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+        technician: report.technician_name || '',
+        equipment: `${report.equipment_area || ''}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`,
+        priority: report.priority || '',
+        status: report.status || '',
+        description: report.description || '',
+        notes: report.notes || ''
+      });
+      
+      // Estilo para filas de turno vespertino
+      row.eachCell((cell) => {
+        cell.font = { size: 10 };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+      
+      // Resaltar la descripción de la falla
+      row.getCell('description').font = { bold: true, size: 10 };
+      
+      // Colorear según prioridad
+      const priorityCell = row.getCell('priority');
+      switch(report.priority) {
+        case 'critica':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+          break;
+        case 'alta':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFA500' } };
+          break;
+        case 'media':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+          break;
+        case 'baja':
+          priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FF00' } };
+          break;
+      }
+    });
+    
+    // Configurar página para impresión
+    worksheet.pageSetup = {
+      paperSize: 9, // A4
+      orientation: 'landscape',
+      margins: {
+        left: 0.7,
+        right: 0.7,
+        top: 0.75,
+        bottom: 0.75,
+        header: 0.3,
+        footer: 0.3
+      },
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0
+    };
+    
+    // Repetir encabezados en cada página
+    worksheet.pageSetup.printTitlesRow = '1:1';
+    
+    // Generar buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
   }
 }
 

@@ -168,6 +168,9 @@ class App {
     this.app.post('/api/reports', authenticateToken, reportController.createReport);
     this.app.get('/api/reports/stats', authenticateToken, reportController.getStats);
     this.app.get('/api/reports/high-priority', authenticateToken, reportController.getHighPriorityReports);
+    this.app.get('/api/reports/export', authenticateToken, (req, res, next) => {
+      reportController.exportReports(req, res, next);
+    });
     
     // Rutas personales del usuario
     this.app.get('/api/reports/my', authenticateToken, reportController.getMyReports);
