@@ -299,10 +299,10 @@ class ReportService {
             // Cuando seleccionamos el día X para el turno vespertino, queremos ver:
             // - Las horas de 18:00 del día X-1 hasta las 5:59 del día X
             const previousDay = new Date(selectedDate);
-            previousDay.setDate(previousDay.getDate() - 1);        
-            shiftStart = new Date(previousDay);
+            previousDay.setDate(previousDay.getDate() +1);        
+            shiftStart = new Date(selectedDate);
             shiftStart.setHours(18, 0, 0, 0);
-            shiftEnd = new Date(selectedDate);
+            shiftEnd = new Date(previousDay);
             shiftEnd.setHours(5, 59, 59, 999);
           }
           
