@@ -222,7 +222,7 @@ class ReportController {
       
       res.status(200).json({
         success: true,
-        data: result.reports.map(report => report.toSafeJSON()),
+        data: result.reports,
         pagination: result.pagination,
         message: 'Reportes obtenidos exitosamente'
       });

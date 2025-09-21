@@ -7,7 +7,8 @@ const config = {
     port: process.env.POSTGRES_PORT || 5432,
     dialect: 'postgres',
     logging: false,
-    migrationStorageTableName: 'sequelize_meta'
+    migrationStorageTableName: 'sequelize_meta',
+    timezone: '-05:00' // America/Mexico_City
   },
   production: {
     username: process.env.POSTGRES_USER,
@@ -17,7 +18,8 @@ const config = {
     port: process.env.POSTGRES_PORT || 5432,
     dialect: 'postgres',
     logging: false,
-    migrationStorageTableName: 'sequelize_meta'
+    migrationStorageTableName: 'sequelize_meta',
+    timezone: '-05:00' // America/Mexico_City
   }
 };
 

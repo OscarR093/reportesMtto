@@ -21,14 +21,14 @@ import { formatDateTime } from '../utils/helpers';
 const Reports = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [morningReports, setMorningReports] = useState([]); // Reportes del turno matutino
-  const [eveningReports, setEveningReports] = useState([]); // Reportes del turno vespertino
+  const [morningReports, setMorningReports] = useState([]);
+  const [eveningReports, setEveningReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Fecha actual por defecto
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -55,18 +55,16 @@ const Reports = () => {
     { value: 'mecanizado', label: 'Mecanizado' }
   ];
 
-  // Función para obtener reportes por turno
+  // Función simplificada para obtener reportes por turno
   const fetchReportsByShift = async (shift) => {
     try {
       const token = localStorage.getItem('token');
-      
       const params = new URLSearchParams({
         page: 1,
-        limit: 100, // Obtener todos los reportes para el turno
+        limit: 100,
         date: selectedDate,
         shift: shift
       });
-
       if (filterStatus !== 'all') params.append('status', filterStatus);
       if (filterPriority !== 'all') params.append('priority', filterPriority);
       if (filterArea !== 'all') params.append('equipment_area', filterArea);
@@ -77,7 +75,6 @@ const Reports = () => {
           'Authorization': `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         return data.data || [];
@@ -92,23 +89,21 @@ const Reports = () => {
     }
   };
 
-  // Función para obtener todos los reportes
+  // Función simplificada para obtener todos los reportes
   const fetchAllReports = async () => {
     setLoading(true);
     try {
-      // Obtener reportes del turno matutino
-      const morning = await fetchReportsByShift('morning');
+      const [morning, evening] = await Promise.all([
+        fetchReportsByShift('morning'),
+        fetchReportsByShift('evening')
+      ]);
       setMorningReports(morning);
-      
-      // Obtener reportes del turno vespertino
-      const evening = await fetchReportsByShift('evening');
       setEveningReports(evening);
     } finally {
       setLoading(false);
     }
   };
 
-  // Efecto para cargar reportes cuando cambian los filtros o la fecha
   useEffect(() => {
     fetchAllReports();
   }, [selectedDate, filterStatus, filterPriority, filterArea, searchTerm]);
@@ -128,7 +123,6 @@ const Reports = () => {
       });
 
       if (response.ok) {
-        // Recargar reportes después de eliminar
         fetchAllReports();
         toast.success('Reporte eliminado correctamente');
       } else {
@@ -154,7 +148,6 @@ const Reports = () => {
       });
 
       if (response.ok) {
-        // Recargar reportes después de cambiar el estado
         fetchAllReports();
         toast.success('Estado actualizado correctamente');
       } else {
@@ -169,69 +162,35 @@ const Reports = () => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'critica':
-        return 'text-red-600 bg-red-100';
-      case 'alta':
-        return 'text-orange-600 bg-orange-100';
-      case 'media':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'baja':
-        return 'text-green-600 bg-green-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
+      case 'critica': return 'text-red-600 bg-red-100';
+      case 'alta': return 'text-orange-600 bg-orange-100';
+      case 'media': return 'text-yellow-600 bg-yellow-100';
+      case 'baja': return 'text-green-600 bg-green-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'abierto':
-        return 'text-blue-600 bg-blue-100';
-      case 'en_proceso':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'resuelto':
-        return 'text-green-600 bg-green-100';
-      case 'cerrado':
-        return 'text-gray-600 bg-gray-100';
-      case 'cancelado':
-        return 'text-red-600 bg-red-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
+      case 'abierto': return 'text-blue-600 bg-blue-100';
+      case 'en_proceso': return 'text-yellow-600 bg-yellow-100';
+      case 'resuelto': return 'text-green-600 bg-green-100';
+      case 'cerrado': return 'text-gray-600 bg-gray-100';
+      case 'cancelado': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  const formatDate = (dateString) => {
-    return formatDateTime(dateString);
-  };
-
-  const canEditReport = (report) => {
-    // Solo el creador puede editar si el reporte está abierto
-    if (report.user_id === user?.id && report.status === 'abierto') {
-      return true;
-    }
-    
-    return false;
-  };
-
-  const canDeleteReport = (report) => {
-    // Solo el creador puede eliminar si el reporte está abierto
-    if (report.user_id === user?.id && report.status === 'abierto') {
-      return true;
-    }
-    
-    return false;
-  };
-
-  const canChangeStatus = (report) => {
-    // Solo los administradores pueden cambiar el estado de cualquier reporte
-    return user?.role && ['admin', 'super_admin'].includes(user.role);
-  };
-
+  const formatDate = (dateString) => formatDateTime(dateString);
+  const canEditReport = (report) => user?.id === report.user_id && report.status === 'abierto';
+  const canDeleteReport = (report) => user?.id === report.user_id && report.status === 'abierto';
+  const canChangeStatus = (report) => user?.role && ['admin', 'super_admin'].includes(user.role);
+  
   const viewReportDetails = (report) => {
     setSelectedReport(report);
     setShowModal(true);
   };
 
-  // Función para renderizar una tabla de reportes
   const renderReportsTable = (reports, shiftTitle) => {
     if (loading) {
       return (
@@ -246,14 +205,11 @@ const Reports = () => {
         <div className="text-center py-8">
           <WrenchScrewdriverIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reportes</h3>
-          <p className="text-gray-600">
-            No se encontraron reportes para este turno
-          </p>
+          <p className="text-gray-600">No se encontraron reportes para este turno</p>
         </div>
       );
     }
 
-    // Ordenar los reportes por fecha descendente (más nuevos arriba)
     const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return (
@@ -261,27 +217,13 @@ const Reports = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reporte
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Equipo
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Prioridad
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Técnico
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Fecha
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporte</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipo</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -289,103 +231,62 @@ const Reports = () => {
               <tr key={report.id} className="hover:bg-gray-50 cursor-pointer transition-colors duration-150" onClick={() => viewReportDetails(report)}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col items-start">
-                    <div className="text-base font-bold text-gray-900 mb-1">
-                      {report.description ? report.description : 'Sin descripción'}
-                    </div>
-                    <div className="text-sm text-gray-500 mb-1">
-                      {report.title} {report.createdAt && `(${formatDate(report.createdAt)})`}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {report.issue_type}
-                    </div>
+                    <div className="text-base font-bold text-gray-900 mb-1">{report.description || 'Sin descripción'}</div>
+                    <div className="text-sm text-gray-500 mb-1">{report.title} {report.createdAt && `(${formatDate(report.createdAt)})`}</div>
+                    <div className="text-xs text-gray-500">{report.issue_type}</div>
                     {report.evidence_images && (() => {
                       try {
                         const images = JSON.parse(report.evidence_images);
                         return images.length > 0 && (
                           <div className="flex items-center mt-1">
                             <PhotoIcon className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-xs text-gray-500">
-                              {images.length} imagen(es)
-                            </span>
+                            <span className="text-xs text-gray-500">{images.length} imagen(es)</span>
                           </div>
                         );
-                      } catch {
-                        return null;
-                      }
+                      } catch { return null; }
                     })()}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {report.equipment_display || `${report.equipment_area}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`}
-                  </div>
+                  <div className="text-sm text-gray-900">{report.equipment_display || `${report.equipment_area}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
-                    {report.priority}
-                  </span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>{report.priority}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {(user?.role === 'admin' || user?.role === 'super_admin') && report.status !== 'cerrado' ? (
+                  {canChangeStatus(report) && report.status !== 'cerrado' ? (
                     <select
                       value={report.status}
-                      onChange={(e) => {
-                        e.stopPropagation(); // Evitar que se abra el modal
-                        handleStatusChange(report.id, e.target.value);
-                      }}
+                      onChange={(e) => { e.stopPropagation(); handleStatusChange(report.id, e.target.value); }}
                       className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${getStatusColor(report.status)}`}
-                      onClick={(e) => e.stopPropagation()} // Evitar que se abra el modal
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <option value="abierto">Abierto</option>
                       <option value="cerrado">Cerrado</option>
                     </select>
                   ) : (
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
-                      {report.status}
-                    </span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>{report.status}</span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <div className="text-sm text-gray-900">
-                      {report.technician_name}
-                    </div>
+                    <div className="text-sm text-gray-900">{report.technician_name}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <div className="text-sm text-gray-900">
-                      {formatDate(report.createdAt)}
-                    </div>
+                    <div className="text-sm text-gray-900">{formatDate(report.createdAt)}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                     {canEditReport(report) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/reports/${report.id}/edit`);
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
-                        title="Editar"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50" title="Editar"><PencilIcon className="h-4 w-4" /></button>
                     )}
                     {canDeleteReport(report) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteReport(report.id);
-                        }}
-                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                        title="Eliminar"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" title="Eliminar"><TrashIcon className="h-4 w-4" /></button>
                     )}
                   </div>
                 </td>
@@ -417,189 +318,84 @@ const Reports = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Reportes de Mantenimiento</h1>
             <p className="text-gray-600">Gestiona y supervisa todos los reportes por turno</p>
           </div>
-          <Link
-            to="/reports/create"
-            className="btn-primary flex items-center"
-          >
+          <Link to="/reports/create" className="btn-primary flex items-center">
             <PlusIcon className="h-5 w-5 mr-2" />
             Nuevo Reporte
           </Link>
         </div>
 
-        {/* Selector de Fecha y Filtros */}
         <div className="card">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            {/* Selector de Fecha */}
             <div className="lg:col-span-2">
               <div className="relative">
                 <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="input-field pl-10"
-                />
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input-field pl-10"/>
               </div>
             </div>
-
-            {/* Filtros */}
-            <div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="input-field"
-              >
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <select
-                value={filterPriority}
-                onChange={(e) => setFilterPriority(e.target.value)}
-                className="input-field"
-              >
-                {priorityOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <select
-                value={filterArea}
-                onChange={(e) => setFilterArea(e.target.value)}
-                className="input-field"
-              >
-                {areaOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Búsqueda */}
+            <div><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input-field">{statusOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
+            <div><select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="input-field">{priorityOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
+            <div><select value={filterArea} onChange={(e) => setFilterArea(e.target.value)} className="input-field">{areaOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
             <div>
               <div className="relative">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar reportes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field pl-10"
-                />
+                <input type="text" placeholder="Buscar reportes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field pl-10"/>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabla de Reportes del Turno Matutino */}
         <div className="card">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Turno Matutino (6:00 - 17:59)
-            </h2>
-            <span className="text-sm text-gray-500">
-              {morningReports.length} reportes
-            </span>
+            <h2 className="text-lg font-semibold text-gray-900">Turno Matutino (6:00 - 17:59)</h2>
+            <span className="text-sm text-gray-500">{morningReports.length} reportes</span>
           </div>
           {renderReportsTable(morningReports, 'Matutino')}
         </div>
 
-        {/* Tabla de Reportes del Turno Vespertino */}
         <div className="card">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Turno Vespertino (18:00 - 5:59)
-            </h2>
-            <span className="text-sm text-gray-500">
-              {eveningReports.length} reportes
-            </span>
+            <h2 className="text-lg font-semibold text-gray-900">Turno Vespertino (18:00 - 5:59)</h2>
+            <span className="text-sm text-gray-500">{eveningReports.length} reportes</span>
           </div>
           {renderReportsTable(eveningReports, 'Vespertino')}
         </div>
 
-        {/* Modal de Detalles */}
         {showModal && selectedReport && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Detalles del Reporte
-                  </h3>
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <span className="sr-only">Cerrar</span>
-                    ✕
-                  </button>
+                  <h3 className="text-lg font-medium text-gray-900">Detalles del Reporte</h3>
+                  <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><span className="sr-only">Cerrar</span>✕</button>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="font-medium mb-2">Información General</h4>
                     <div className="space-y-2 text-sm">
                       <p><strong>Título:</strong> {selectedReport.title}</p>
                       <p><strong>Tipo:</strong> {selectedReport.issue_type}</p>
-                      <p><strong>Prioridad:</strong> 
-                        <span className={`ml-1 px-2 py-1 rounded-full text-xs ${getPriorityColor(selectedReport.priority)}`}>
-                          {selectedReport.priority}
-                        </span>
-                      </p>
-                      <p><strong>Estado:</strong> 
-                        <span className={`ml-1 px-2 py-1 rounded-full text-xs ${getStatusColor(selectedReport.status)}`}>
-                          {selectedReport.status}
-                        </span>
-                      </p>
+                      <p><strong>Prioridad:</strong> <span className={`ml-1 px-2 py-1 rounded-full text-xs ${getPriorityColor(selectedReport.priority)}`}>{selectedReport.priority}</span></p>
+                      <p><strong>Estado:</strong> <span className={`ml-1 px-2 py-1 rounded-full text-xs ${getStatusColor(selectedReport.status)}`}>{selectedReport.status}</span></p>
                       <p><strong>Técnico:</strong> {selectedReport.technician_name}</p>
                       <p><strong>Fecha:</strong> {formatDate(selectedReport.createdAt)}</p>
                     </div>
                   </div>
-                  
                   <div>
                     <h4 className="font-medium mb-2">Equipo</h4>
                     <div className="space-y-2 text-sm">
                       <p><strong>Área:</strong> {selectedReport.equipment_area}</p>
-                      {selectedReport.equipment_machine && (
-                        <p><strong>Máquina:</strong> {selectedReport.equipment_machine}</p>
-                      )}
-                      {selectedReport.equipment_element && (
-                        <p><strong>Elemento:</strong> {selectedReport.equipment_element}</p>
-                      )}
+                      {selectedReport.equipment_machine && (<p><strong>Máquina:</strong> {selectedReport.equipment_machine}</p>)}
+                      {selectedReport.equipment_element && (<p><strong>Elemento:</strong> {selectedReport.equipment_element}</p>)}
                     </div>
                   </div>
                 </div>
-                
-                {selectedReport.description && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Descripción</h4>
-                    <p className="text-sm text-gray-700">{selectedReport.description}</p>
-                  </div>
-                )}
-                
-                {selectedReport.notes && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Comentarios</h4>
-                    <p className="text-sm text-gray-700">{selectedReport.notes}</p>
-                  </div>
-                )}
-                
+                {selectedReport.description && (<div className="mt-4"><h4 className="font-medium mb-2">Descripción</h4><p className="text-sm text-gray-700">{selectedReport.description}</p></div>)}
+                {selectedReport.notes && (<div className="mt-4"><h4 className="font-medium mb-2">Comentarios</h4><p className="text-sm text-gray-700">{selectedReport.notes}</p></div>)}
                 {selectedReport.evidence_images && (() => {
                   try {
                     const images = JSON.parse(selectedReport.evidence_images);
@@ -607,52 +403,23 @@ const Reports = () => {
                       <div className="mt-4">
                         <h4 className="font-medium mb-2">Evidencias</h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {images.map((image, index) => (
-                            <img
-                              key={index}
-                              src={image}
-                              alt={`Evidencia ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg cursor-pointer"
-                              onClick={() => {
-                                setImageViewerSrc(image);
-                                setImageViewerOpen(true);
-                              }}
-                            />
-                          ))}
+                          {images.map((image, index) => (<img key={index} src={image} alt={`Evidencia ${index + 1}`} className="w-full h-32 object-cover rounded-lg cursor-pointer" onClick={() => { setImageViewerSrc(image); setImageViewerOpen(true); }}/>))}
                         </div>
                       </div>
                     );
-                  } catch {
-                    return null;
-                  }
+                  } catch { return null; }
                 })()}
               </div>
             </div>
           </div>
         )}
 
-        {/* Visor de imagen modal */}
         {imageViewerOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
             <div className="bg-white rounded-lg shadow-lg p-4 relative max-w-lg w-full flex flex-col items-center">
-              <button
-                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                onClick={() => setImageViewerOpen(false)}
-                title="Cerrar"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
+              <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-700" onClick={() => setImageViewerOpen(false)} title="Cerrar"><XMarkIcon className="h-6 w-6" /></button>
               <img src={imageViewerSrc} alt="Evidencia" className="max-h-[60vh] w-auto rounded mb-4" />
-              <a
-                href={imageViewerSrc}
-                onClick={e => {
-                  e.preventDefault();
-                  handleDownload(imageViewerSrc);
-                }}
-                className="btn-primary px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Descargar imagen
-              </a>
+              <a href={imageViewerSrc} onClick={e => { e.preventDefault(); handleDownload(imageViewerSrc); }} className="btn-primary px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700">Descargar imagen</a>
             </div>
           </div>
         )}

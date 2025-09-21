@@ -246,75 +246,61 @@ class ReportService {
   /**
    * Obtener reportes con filtros
    */
-  async getReports(filters = {}, pagination = { page: 1, limit: 20 }) {
+  async getReports(filters = {}, pagination = { page: 1, limit: 100 }) {
     try {
       const where = {};
       const order = [];
 
       // Aplicar filtros
-      if (filters.user_id) {
-        where.user_id = filters.user_id;
-      }
+      if (filters.user_id) where.user_id = filters.user_id;
+      if (filters.assigned_to) where.assigned_to = filters.assigned_to;
+      if (filters.status) where.status = filters.status;
+      if (filters.priority) where.priority = filters.priority;
+      if (filters.issue_type) where.issue_type = filters.issue_type;
+      if (filters.equipment_area) where.equipment_area = filters.equipment_area;
+      if (filters.equipment_machine) where.equipment_machine = filters.equipment_machine;
 
-      if (filters.assigned_to) {
-        where.assigned_to = filters.assigned_to;
-      }
+      // Filtro por fecha y turno (LÓGICA MEJORADA Y CENTRALIZADA)
+      if (filters.date && filters.shift) {
+        // Parsear la fecha correctamente
+        const [year, month, day] = filters.date.split('-').map(Number);
+        const baseDate = new Date(year, month - 1, day); // Month is 0-indexed
 
-      if (filters.status) {
-        where.status = filters.status;
-      }
-
-      if (filters.priority) {
-        where.priority = filters.priority;
-      }
-
-      if (filters.issue_type) {
-        where.issue_type = filters.issue_type;
-      }
-
-      if (filters.equipment_area) {
-        where.equipment_area = filters.equipment_area;
-      }
-
-      if (filters.equipment_machine) {
-        where.equipment_machine = filters.equipment_machine;
-      }
-
-      // Filtro por fecha y turno
-      if (filters.date) {
-        const selectedDate = new Date(filters.date);
-        
-        if (filters.shift) {
-          // Filtro por turno específico
-          let shiftStart, shiftEnd;
+        if (filters.shift === 'morning') {
+          // Turno matutino: 6:00 - 17:59 del día seleccionado
+          const shiftStart = new Date(baseDate);
+          shiftStart.setHours(6, 0, 0, 0);
           
-          if (filters.shift === 'morning') {
-            // Turno matutino: 6:00 - 17:59 del día seleccionado
-            shiftStart = new Date(selectedDate);
-            shiftStart.setHours(6, 0, 0, 0);
-            shiftEnd = new Date(selectedDate);
-            shiftEnd.setHours(17, 59, 59, 999);
-          } else if (filters.shift === 'evening') {
-            // Turno vespertino: 18:00 del día anterior - 5:59 del día seleccionado
-            // Cuando seleccionamos el día X para el turno vespertino, queremos ver:
-            // - Las horas de 18:00 del día X-1 hasta las 5:59 del día X
-            const previousDay = new Date(selectedDate);
-            previousDay.setDate(previousDay.getDate() +1);        
-            shiftStart = new Date(selectedDate);
-            shiftStart.setHours(18, 0, 0, 0);
-            shiftEnd = new Date(previousDay);
-            shiftEnd.setHours(5, 59, 59, 999);
-          }
+          const shiftEnd = new Date(baseDate);
+          shiftEnd.setHours(17, 59, 59, 999);
           
-          if (shiftStart && shiftEnd) {
-            where.created_at = {
-              [Op.gte]: shiftStart,
-              [Op.lte]: shiftEnd
-            };
-          }
-        } else {
-          // No aplicar filtro por fecha si no se especifica turno
-          // Esto permite que el frontend maneje la lógica de mostrar ambos turnos
+          where.created_at = {
+            [Op.between]: [shiftStart, shiftEnd]
+          };
+
+        } else if (filters.shift === 'evening') {
+          // Turno vespertino: 18:00 del día seleccionado - 05:59 del día SIGUIENTE
+          const startRange1 = new Date(baseDate);
+          startRange1.setHours(18, 0, 0, 0);
+          
+          const endRange1 = new Date(baseDate);
+          endRange1.setHours(23, 59, 59, 999);
+
+          const nextDay = new Date(baseDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+
+          const startRange2 = new Date(nextDay);
+          startRange2.setHours(0, 0, 0, 0);
+          
+          const endRange2 = new Date(nextDay);
+          endRange2.setHours(5, 59, 59, 999);
+          
+          where.created_at = {
+            [Op.or]: [
+              { [Op.between]: [startRange1, endRange1] },
+              { [Op.between]: [startRange2, endRange2] }
+            ]
+          };
         }
       }
 
@@ -332,7 +318,6 @@ class ReportService {
         const sortDirection = filters.sort_order === 'asc' ? 'ASC' : 'DESC';
         order.push([filters.sort_by, sortDirection]);
       } else {
-        // Ordenamiento por defecto: fecha descendente
         order.push(['created_at', 'DESC']);
       }
 
@@ -340,14 +325,23 @@ class ReportService {
       const offset = (pagination.page - 1) * pagination.limit;
 
       const { count, rows } = await Report.findAndCountAll({
-        where,
-        order,
-        limit: pagination.limit,
-        offset
+  where,
+  order,
+  limit: pagination.limit,
+  offset,
+  // Remove raw: true to ensure we get model instances
+      });
+      
+      // Map to safe JSON only if it's a model instance, otherwise use the object directly
+      const reports = rows.map(report => {
+        if (typeof report.toSafeJSON === 'function') {
+          return report.toSafeJSON();
+        }
+        return { ...report };
       });
 
       return {
-        reports: rows,
+        reports: reports,
         pagination: {
           total: count,
           page: pagination.page,
@@ -368,16 +362,11 @@ class ReportService {
     try {
       const where = {};
 
-      // Aplicar filtros de fecha si existen
       if (filters.date_from) {
         where.created_at = { [Op.gte]: new Date(filters.date_from) };
       }
-
       if (filters.date_to) {
-        where.created_at = { 
-          ...where.created_at, 
-          [Op.lte]: new Date(filters.date_to) 
-        };
+        where.created_at = { ...where.created_at, [Op.lte]: new Date(filters.date_to) };
       }
 
       const [
@@ -398,58 +387,14 @@ class ReportService {
         Report.count({ where: { ...where, status: 'resuelto' } }),
         Report.count({ where: { ...where, status: 'cerrado' } }),
         Report.count({ where: { ...where, priority: ['alta', 'critica'] } }),
-        
-        // Agrupaciones
-        Report.findAll({
-          attributes: [
-            'status',
-            [Report.sequelize.fn('COUNT', '*'), 'count']
-          ],
-          where,
-          group: ['status'],
-          raw: true
-        }),
-        
-        Report.findAll({
-          attributes: [
-            'priority',
-            [Report.sequelize.fn('COUNT', '*'), 'count']
-          ],
-          where,
-          group: ['priority'],
-          raw: true
-        }),
-        
-        Report.findAll({
-          attributes: [
-            'issue_type',
-            [Report.sequelize.fn('COUNT', '*'), 'count']
-          ],
-          where,
-          group: ['issue_type'],
-          raw: true
-        }),
-        
-        Report.findAll({
-          attributes: [
-            'equipment_area',
-            [Report.sequelize.fn('COUNT', '*'), 'count']
-          ],
-          where,
-          group: ['equipment_area'],
-          raw: true
-        })
+        Report.findAll({ attributes: ['status', [Report.sequelize.fn('COUNT', '*'), 'count']], where, group: ['status'], raw: true }),
+        Report.findAll({ attributes: ['priority', [Report.sequelize.fn('COUNT', '*'), 'count']], where, group: ['priority'], raw: true }),
+        Report.findAll({ attributes: ['issue_type', [Report.sequelize.fn('COUNT', '*'), 'count']], where, group: ['issue_type'], raw: true }),
+        Report.findAll({ attributes: ['equipment_area', [Report.sequelize.fn('COUNT', '*'), 'count']], where, group: ['equipment_area'], raw: true })
       ]);
 
       return {
-        summary: {
-          total: totalReports,
-          open: openReports,
-          in_progress: inProgressReports,
-          resolved: resolvedReports,
-          closed: closedReports,
-          high_priority: highPriorityReports
-        },
+        summary: { total: totalReports, open: openReports, in_progress: inProgressReports, resolved: resolvedReports, closed: closedReports, high_priority: highPriorityReports },
         by_status: byStatus,
         by_priority: byPriority,
         by_issue_type: byIssueType,
@@ -471,12 +416,10 @@ class ReportService {
         throw new Error('Reporte no encontrado');
       }
 
-      // Los reportes cerrados son inmutables
       if (report.isClosed()) {
         throw new Error('No se puede eliminar un reporte cerrado');
       }
 
-      // Solo el creador puede eliminar su propio reporte, y solo si está abierto
       if (report.user_id !== user.id) {
         throw new Error('No tienes permisos para eliminar reportes');
       }
