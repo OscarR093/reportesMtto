@@ -226,20 +226,36 @@ const Dashboard = () => {
           </Link>
 
           {(user?.role === 'admin' || user?.role === 'super_admin') && (
-            <Link
-              to="/users"
-              className="card hover:shadow-lg transition-shadow cursor-pointer group"
-            >
-              <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
-                  <UsersIcon className="h-6 w-6 text-purple-600" />
+            <>
+              <Link
+                to="/users"
+                className="card hover:shadow-lg transition-shadow cursor-pointer group"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 rounded-full bg-purple-100 group-hover:bg-purple-200 transition-colors">
+                    <UsersIcon className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Usuarios</h3>
+                    <p className="text-sm text-gray-600">Gestionar usuarios del sistema</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Usuarios</h3>
-                  <p className="text-sm text-gray-600">Gestionar usuarios del sistema</p>
+              </Link>
+              <Link
+                to="/pending"
+                className="card hover:shadow-lg transition-shadow cursor-pointer group"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors">
+                    <ClockIcon className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Actividades Pendientes</h3>
+                    <p className="text-sm text-gray-600">Gestionar actividades pendientes</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            </>
           )}
         </div>
 
