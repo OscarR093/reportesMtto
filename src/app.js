@@ -13,6 +13,8 @@ import dashboardController from './controllers/dashboardController.js';
 import profileController from './controllers/profileController.js';
 import equipmentController from './controllers/equipmentController.js';
 import reportController from './controllers/reportController.js';
+import pendingController from './controllers/pendingController.js';
+import pendingRoutes from './routes/pending.js';
 import fileUploadController, { evidenceUpload, avatarUpload, documentUpload } from './controllers/fileUploadController.js';
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
@@ -186,40 +188,9 @@ class App {
     this.app.patch('/api/reports/:id/status', authenticateToken, reportController.changeStatus);
     this.app.delete('/api/reports/:id', authenticateToken, reportController.deleteReport);
 
-    // ===== RUTAS DE ARCHIVO/UPLOADS =====
-    // Upload de evidencias (fotos de reportes)
-    this.app.post('/api/files/evidence', 
-      authenticateToken, 
-      evidenceUpload.single('evidence'), 
-      fileUploadController.uploadEvidence
-    );
-    
-    this.app.post('/api/files/evidence/multiple', 
-      authenticateToken, 
-      evidenceUpload.array('evidences', 5), 
-      fileUploadController.uploadMultipleEvidence
-    );
-    
-    // Upload de avatars
-    this.app.post('/api/files/avatar', 
-      authenticateToken, 
-      avatarUpload.single('avatar'), 
-      fileUploadController.uploadAvatar
-    );
-    
-    // Upload de documentos generales
-    this.app.post('/api/files/document', 
-      authenticateToken, 
-      documentUpload.single('document'), 
-      fileUploadController.uploadDocument
-    );
-    
-    // Gestión de archivos
-    this.app.get('/api/files/:bucket/:fileName/info', authenticateToken, fileUploadController.getFileInfo);
-    this.app.get('/api/files/:bucket/:fileName/download', authenticateToken, fileUploadController.generateDownloadUrl);
-    this.app.get('/api/files/:bucket/list', authenticateToken, fileUploadController.listFiles);
-    this.app.delete('/api/files/:bucket/:fileName', authenticateToken, fileUploadController.deleteFile);
-    this.app.get('/api/files/storage/stats', authenticateToken, fileUploadController.getStorageStats);
+    // ===== RUTAS DE ACTIVIDADES PENDIENTES =====
+    // Rutas para administradores
+    this.app.use('/api/pending', pendingRoutes);
 
     // Root API endpoint
     this.app.get('/api', (req, res) => {

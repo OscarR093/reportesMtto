@@ -96,3 +96,22 @@ export const validateOwnership = (req, res, next) => {
 
   next();
 };
+
+// Middleware para requerir rol de administrador
+export const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Usuario no autenticado'
+    });
+  }
+
+  if (!req.user.isAdmin()) {
+    return res.status(403).json({
+      success: false,
+      message: 'Se requiere rol de administrador'
+    });
+  }
+
+  next();
+};

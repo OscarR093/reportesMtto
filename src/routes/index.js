@@ -5,6 +5,7 @@ import reportsRoutes from './reports.js';
 import filesRoutes from './files.js';
 import dashboardRoutes from './dashboard.js';
 import profileRoutes from './profile.js';
+import pendingRoutes from './pending.js';
 
 export {
   authRoutes,
@@ -13,5 +14,6 @@ export {
   reportsRoutes,
   filesRoutes,
   dashboardRoutes,
-  profileRoutes
+  profileRoutes,
+  pendingRoutes
 };

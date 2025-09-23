@@ -7,16 +7,28 @@ import EquipmentSelector from '../components/common/EquipmentSelector';
 const PendingActivities = () => {
   const { user } = useAuth();
   const [activities, setActivities] = useState([]);
+  const [filteredActivities, setFilteredActivities] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState(null);
+  const [assigningActivity, setAssigningActivity] = useState(null);
   const [formData, setFormData] = useState({
     equipment_area: '',
     equipment_machine: '',
     equipment_element: '',
     issue_type: 'correctivo',
     description: ''
+  });
+  const [assignData, setAssignData] = useState({
+    assigned_users: [],
+    scheduled_date: '',
+    shift: '1'
+  });
+  const [filters, setFilters] = useState({
+    status: 'all' // all, pendiente, asignado, realizado
   });
   const [message, setMessage] = useState('');
 
@@ -27,8 +39,14 @@ const PendingActivities = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchPendingActivities();
+      fetchActiveUsers();
     }
   }, [isAdmin]);
+
+  // Apply filters when activities or filters change
+  useEffect(() => {
+    applyFilters();
+  }, [activities, filters]);
 
   const fetchPendingActivities = async () => {
     try {
@@ -51,6 +69,43 @@ const PendingActivities = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchActiveUsers = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/pending/users/active', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setUsers(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching active users:', error);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...activities];
+    
+    // Apply status filter
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(activity => activity.status === filters.status);
+    }
+    
+    setFilteredActivities(filtered);
+  };
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
   };
 
   if (!user || !isAdmin) {
@@ -76,6 +131,14 @@ const PendingActivities = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAssignChange = (e) => {
+    const { name, value } = e.target;
+    setAssignData(prev => ({
       ...prev,
       [name]: value
     }));
@@ -201,6 +264,79 @@ const PendingActivities = () => {
     }
   };
 
+  const handleAssign = (activity) => {
+    setAssigningActivity(activity);
+    
+    // Si la actividad ya está asignada, cargar los datos existentes
+    if (activity.status === 'asignado' && activity.assigned_users_parsed) {
+      setAssignData({
+        assigned_users: activity.assigned_users_parsed,
+        scheduled_date: activity.scheduled_date ? activity.scheduled_date.split('T')[0] : '',
+        shift: activity.shift || '1'
+      });
+    } else {
+      // Inicializar datos de asignación con valores por defecto
+      setAssignData({
+        assigned_users: [],
+        scheduled_date: '',
+        shift: '1'
+      });
+    }
+    setShowAssignModal(true);
+  };
+
+  const handleAssignSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/api/pending/${assigningActivity.id}/assign`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(assignData)
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setMessage('Actividad asignada exitosamente');
+        setShowAssignModal(false);
+        setAssigningActivity(null);
+        // Limpiar datos de asignación
+        setAssignData({
+          assigned_users: [],
+          scheduled_date: '',
+          shift: '1'
+        });
+        // Refresh the activities list
+        fetchPendingActivities();
+      } else {
+        setMessage(`Error: ${result.error || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      setMessage(`Error: ${error.message}`);
+    }
+  };
+
+  const addUserToAssignment = (userId) => {
+    if (!assignData.assigned_users.includes(userId)) {
+      setAssignData(prev => ({
+        ...prev,
+        assigned_users: [...prev.assigned_users, userId]
+      }));
+    }
+  };
+
+  const removeUserFromAssignment = (userId) => {
+    setAssignData(prev => ({
+      ...prev,
+      assigned_users: prev.assigned_users.filter(id => id !== userId)
+    }));
+  };
+
   const getStatusBadge = (status) => {
     const statusClasses = {
       'pendiente': 'bg-yellow-100 text-yellow-800',
@@ -221,6 +357,29 @@ const PendingActivities = () => {
     );
   };
 
+  const getShiftLabel = (shift) => {
+    const shiftLabels = {
+      '1': 'Matutino',
+      '2': 'Vespertino'
+    };
+    
+    return shiftLabels[shift] || shift;
+  };
+
+  // Get users not yet assigned (for selection list)
+  const getAvailableUsers = () => {
+    return users.filter(user => 
+      !assignData.assigned_users.includes(user.id)
+    );
+  };
+
+  // Get assigned users with full info
+  const getAssignedUsers = () => {
+    return users.filter(user => 
+      assignData.assigned_users.includes(user.id)
+    );
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -236,6 +395,27 @@ const PendingActivities = () => {
           <Button onClick={() => setShowForm(true)}>
             Añadir Actividad
           </Button>
+        </div>
+
+        {/* Filtros */}
+        <div className="card">
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="all">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="asignado">Asignado</option>
+                <option value="realizado">Realizado</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {message && (
@@ -351,6 +531,163 @@ const PendingActivities = () => {
           </div>
         )}
 
+        {/* Modal de asignación */}
+        {showAssignModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {assigningActivity?.status === 'asignado' ? 'Modificar Asignación' : 'Asignar Actividad Pendiente'}
+                </h3>
+                <form onSubmit={handleAssignSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Columna izquierda - Usuarios disponibles */}
+                    <div>
+                      <h4 className="text-md font-medium text-gray-900 mb-2">
+                        Usuarios Disponibles
+                      </h4>
+                      <div className="border rounded-md p-3 max-h-60 overflow-y-auto">
+                        {getAvailableUsers().length > 0 ? (
+                          getAvailableUsers().map((user) => (
+                            <div 
+                              key={user.id} 
+                              className="flex items-center justify-between p-2 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => addUserToAssignment(user.id)}
+                            >
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                  <span className="text-blue-800 font-medium">
+                                    {user.display_name ? user.display_name.charAt(0).toUpperCase() : user.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="ml-3">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {user.display_name || user.name}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {user.email}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            No hay usuarios disponibles
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Columna derecha - Usuarios asignados */}
+                    <div>
+                      <h4 className="text-md font-medium text-gray-900 mb-2">
+                        Usuarios Asignados
+                      </h4>
+                      <div className="border rounded-md p-3 min-h-[200px]">
+                        {getAssignedUsers().length > 0 ? (
+                          getAssignedUsers().map((user) => (
+                            <div 
+                              key={user.id} 
+                              className="flex items-center justify-between p-2 bg-blue-50 rounded-md mb-2"
+                            >
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                  <span className="text-blue-800 font-medium">
+                                    {user.display_name ? user.display_name.charAt(0).toUpperCase() : user.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div className="ml-3">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {user.display_name || user.name}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    {user.email}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeUserFromAssignment(user.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <p className="text-sm text-gray-500 text-center">
+                              No hay usuarios asignados
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Fecha programada
+                      </label>
+                      <input
+                        type="date"
+                        name="scheduled_date"
+                        value={assignData.scheduled_date}
+                        onChange={handleAssignChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Turno
+                      </label>
+                      <select
+                        name="shift"
+                        value={assignData.shift}
+                        onChange={handleAssignChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      >
+                        <option value="1">Matutino</option>
+                        <option value="2">Vespertino</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        setShowAssignModal(false);
+                        setAssigningActivity(null);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit">
+                      {assigningActivity?.status === 'asignado' ? 'Actualizar Asignación' : 'Asignar Actividad'}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="card">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Lista de Actividades Pendientes
@@ -360,20 +697,22 @@ const PendingActivities = () => {
             <div className="flex justify-center items-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
-          ) : activities.length === 0 ? (
+          ) : filteredActivities.length === 0 ? (
             <div className="text-center py-8">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay actividades pendientes</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay actividades</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Comienza creando una nueva actividad pendiente.
+                {filters.status === 'all' 
+                  ? 'No hay actividades pendientes.' 
+                  : `No hay actividades con estado "${filters.status}".`}
               </p>
             </div>
           ) : (
             <div className="overflow-hidden bg-white shadow sm:rounded-md">
               <ul className="divide-y divide-gray-200">
-                {activities.map((activity) => (
+                {filteredActivities.map((activity) => (
                   <li key={activity.id}>
                     <div className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
@@ -382,23 +721,56 @@ const PendingActivities = () => {
                         </p>
                         <div className="ml-2 flex-shrink-0 flex space-x-2">
                           {getStatusBadge(activity.status)}
+                          {activity.status === 'pendiente' && (
+                            <button
+                              onClick={() => handleAssign(activity)}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                              title="Asignar"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                              </svg>
+                              Asignar
+                            </button>
+                          )}
+                          {activity.status === 'asignado' && (
+                            <button
+                              onClick={() => handleAssign(activity)}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              title="Modificar asignación"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Modificar
+                            </button>
+                          )}
                           <button
                             onClick={() => handleEdit(activity)}
-                            className="text-blue-600 hover:text-blue-900"
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            title="Editar"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
+                            Editar
                           </button>
                           <button
                             onClick={() => handleDelete(activity.id)}
-                            className="text-red-600 hover:text-red-900"
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            title="Eliminar"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                            <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1v3M4 7h16" />
                             </svg>
+                            Eliminar
                           </button>
                         </div>
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-base font-medium text-gray-900">
+                          {activity.description}
+                        </p>
                       </div>
                       <div className="mt-2 sm:flex sm:justify-between">
                         <div className="sm:flex">
@@ -420,11 +792,14 @@ const PendingActivities = () => {
                           })()}
                         </div>
                       </div>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-700">
-                          {activity.description}
-                        </p>
-                      </div>
+                      {activity.status === 'asignado' && activity.scheduled_date && (
+                        <div className="mt-2 flex items-center text-sm text-gray-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Programado para: {new Date(activity.scheduled_date).toLocaleDateString('es-ES')} ({getShiftLabel(activity.shift)})
+                        </div>
+                      )}
                     </div>
                   </li>
                 ))}
