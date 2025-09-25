@@ -225,6 +225,22 @@ const Dashboard = () => {
             </div>
           </Link>
 
+          {/* Enlace a actividades pendientes para todos los usuarios */}
+          <Link
+            to="/my-pending"
+            className="card hover:shadow-lg transition-shadow cursor-pointer group"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-full bg-orange-100 group-hover:bg-orange-200 transition-colors">
+                <ClockIcon className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Mis Actividades</h3>
+                <p className="text-sm text-gray-600">Ver mis actividades pendientes</p>
+              </div>
+            </div>
+          </Link>
+          
           {(user?.role === 'admin' || user?.role === 'super_admin') && (
             <>
               <Link
@@ -250,8 +266,8 @@ const Dashboard = () => {
                     <ClockIcon className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Actividades Pendientes</h3>
-                    <p className="text-sm text-gray-600">Gestionar actividades pendientes</p>
+                    <h3 className="font-semibold text-gray-900">Gestionar Actividades</h3>
+                    <p className="text-sm text-gray-600">Gestionar todas las actividades pendientes</p>
                   </div>
                 </div>
               </Link>

@@ -15,6 +15,7 @@ import equipmentController from './controllers/equipmentController.js';
 import reportController from './controllers/reportController.js';
 import pendingController from './controllers/pendingController.js';
 import pendingRoutes from './routes/pending.js';
+import myPendingRoutes from './routes/myPending.js';
 import fileUploadController, { evidenceUpload, avatarUpload, documentUpload } from './controllers/fileUploadController.js';
 import fileRoutes from './routes/files.js';
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
@@ -192,6 +193,10 @@ class App {
     // ===== RUTAS DE ACTIVIDADES PENDIENTES =====
     // Rutas para administradores
     this.app.use('/api/pending', pendingRoutes);
+    
+    // ===== RUTAS DE MIS ACTIVIDADES PENDIENTES =====
+    // Rutas para que usuarios obtengan sus actividades pendientes
+    this.app.use('/api/my-pending', myPendingRoutes);
     
     // ===== RUTAS DE ARCHIVOS =====
     this.app.use('/api/files', fileRoutes);

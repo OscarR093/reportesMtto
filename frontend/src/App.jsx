@@ -10,6 +10,7 @@ import CreateReport from './pages/CreateReport';
 import UserManagement from './pages/UserManagement';
 import UserProfile from './pages/UserProfile';
 import PendingActivities from './pages/PendingActivities';
+import MyPendingActivities from './pages/MyPendingActivities';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 
 // Componente para rutas protegidas
@@ -97,6 +98,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <CreateReport />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/my-pending" 
+            element={
+              <ProtectedRoute>
+                <MyPendingActivities />
               </ProtectedRoute>
             } 
           />

@@ -1,4 +1,6 @@
 import pendingService from '../services/pendingService.js';
+import myPendingActivitiesService from '../services/myPendingActivities.js';
+import Pending from '../models/Pending.js';
 
 class PendingController {
   /**
@@ -216,6 +218,89 @@ class PendingController {
       
       // Enviar el archivo Excel
       res.send(excelBuffer);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Obtener actividades pendientes asignadas al usuario actual
+   */
+  async getMyPendingActivities(req, res, next) {
+    try {
+      const user = req.user;
+      
+      const result = await myPendingActivitiesService.getMyPendingActivities(user);
+      
+      res.status(200).json({
+        success: true,
+        data: result.activities,
+        message: 'Actividades pendientes obtenidas exitosamente'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Marcar una actividad pendiente como realizada
+   */
+  async markPendingActivityAsCompleted(req, res, next) {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+      
+      // Buscar la actividad pendiente
+      const activity = await Pending.findByPk(id);
+      if (!activity) {
+        return res.status(404).json({
+          success: false,
+          error: 'Actividad no encontrada'
+        });
+      }
+
+      // Verificar si el usuario tiene permiso para marcar como completada
+      let isAssigned = false;
+      
+      // Verificar si está asignado directamente
+      if (activity.assigned_to === user.id) {
+        isAssigned = true;
+      }
+      
+      // Verificar si está en el array de usuarios asignados
+      if (activity.assigned_users) {
+        try {
+          const assignedUsers = JSON.parse(activity.assigned_users);
+          if (Array.isArray(assignedUsers) && assignedUsers.includes(user.id)) {
+            isAssigned = true;
+          }
+        } catch (error) {
+          console.error('Error parseando assigned_users:', error);
+        }
+      }
+      
+      if (!isAssigned) {
+        return res.status(403).json({
+          success: false,
+          error: 'No tienes permiso para marcar esta actividad como realizada'
+        });
+      }
+
+      // Actualizar el estado de la actividad
+      await activity.update({
+        status: 'realizado',
+        completed_at: new Date(),
+        completed_by: user.id
+      });
+      
+      // Devolver la actividad actualizada
+      const activityJSON = activity.toSafeJSON();
+      
+      res.status(200).json({
+        success: true,
+        data: activityJSON,
+        message: 'Actividad marcada como realizada exitosamente'
+      });
     } catch (error) {
       next(error);
     }
