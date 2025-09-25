@@ -528,36 +528,135 @@ const Reports = () => {
         </div>
 
         {showModal && selectedReport && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowModal(false)}
+          >
+            <div 
+              className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Detalles del Reporte</h3>
-                  <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><span className="sr-only">Cerrar</span>✕</button>
+                  <h3 className="text-xl font-semibold text-gray-900">Detalles del Reporte</h3>
+                  <button 
+                    onClick={() => setShowModal(false)} 
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Cerrar"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-medium mb-2">Información General</h4>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Título:</strong> {selectedReport.title}</p>
-                      <p><strong>Tipo:</strong> {selectedReport.issue_type}</p>
-                      <p><strong>Prioridad:</strong> <span className={`ml-1 px-2 py-1 rounded-full text-xs ${getPriorityColor(selectedReport.priority)}`}>{selectedReport.priority}</span></p>
-                      <p><strong>Estado:</strong> <span className={`ml-1 px-2 py-1 rounded-full text-xs ${getStatusColor(selectedReport.status)}`}>{selectedReport.status}</span></p>
-                      <p><strong>Técnico:</strong> {selectedReport.technician_name}</p>
-                      <p><strong>Fecha:</strong> {formatDate(selectedReport.createdAt)}</p>
+                
+                {/* Descripción principal con énfasis */}
+                {selectedReport.description && (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <h4 className="font-semibold text-blue-800 mb-2">Descripción del Problema</h4>
+                    <p className="text-lg font-medium text-gray-900 leading-relaxed">{selectedReport.description}</p>
+                  </div>
+                )}
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
+                        <ClockIcon className="h-5 w-5 mr-2 text-gray-500" />
+                        Información Temporal
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Hora registrada:</span>
+                          <span className="font-semibold text-gray-900">
+                            {new Date(selectedReport.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Fecha:</span>
+                          <span className="font-semibold text-gray-900">
+                            {new Date(selectedReport.createdAt).toLocaleDateString('es-ES')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-gray-700 mb-3">Prioridad y Estado</h4>
+                      <div className="flex space-x-4">
+                        <div>
+                          <span className="text-gray-600">Prioridad:</span>
+                          <span className={`ml-2 px-2 py-1 rounded-full text-sm font-semibold ${getPriorityColor(selectedReport.priority)}`}>
+                            {selectedReport.priority.charAt(0).toUpperCase() + selectedReport.priority.slice(1)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Estado:</span>
+                          <span className={`ml-2 px-2 py-1 rounded-full text-sm font-semibold ${getStatusColor(selectedReport.status)}`}>
+                            {selectedReport.status.charAt(0).toUpperCase() + selectedReport.status.slice(1)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium mb-2">Equipo</h4>
-                    <div className="space-y-2 text-sm">
-                      <p><strong>Área:</strong> {selectedReport.equipment_area}</p>
-                      {selectedReport.equipment_machine && (<p><strong>Máquina:</strong> {selectedReport.equipment_machine}</p>)}
-                      {selectedReport.equipment_element && (<p><strong>Elemento:</strong> {selectedReport.equipment_element}</p>)}
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
+                        <UserIcon className="h-5 w-5 mr-2 text-gray-500" />
+                        Información del Técnico
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Técnico:</span>
+                          <span className="font-semibold text-gray-900">{selectedReport.technician_name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Tipo de Reporte:</span>
+                          <span className="font-semibold text-gray-900 capitalize">{selectedReport.issue_type}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-gray-700 mb-3 flex items-center">
+                        <WrenchScrewdriverIcon className="h-5 w-5 mr-2 text-gray-500" />
+                        Equipo
+                      </h4>
+                      <div className="space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Área:</span>
+                          <span className="font-semibold text-gray-900">{selectedReport.equipment_area}</span>
+                        </div>
+                        {selectedReport.equipment_machine && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Máquina:</span>
+                            <span className="font-semibold text-gray-900">{selectedReport.equipment_machine}</span>
+                          </div>
+                        )}
+                        {selectedReport.equipment_element && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Elemento:</span>
+                            <span className="font-semibold text-gray-900">{selectedReport.equipment_element}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-                {selectedReport.description && (<div className="mt-4"><h4 className="font-medium mb-2">Descripción</h4><p className="text-sm text-gray-700">{selectedReport.description}</p></div>)}
-                {selectedReport.notes && (<div className="mt-4"><h4 className="font-medium mb-2">Comentarios</h4><p className="text-sm text-gray-700">{selectedReport.notes}</p></div>)}
+                
+                {selectedReport.title && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-700 mb-2">Título del Reporte</h4>
+                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedReport.title}</p>
+                  </div>
+                )}
+                
+                {selectedReport.notes && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-700 mb-2">Comentarios</h4>
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{selectedReport.notes}</p>
+                  </div>
+                )}
+                
                 {selectedReport.evidence_images && (() => {
                   try {
                     const images = JSON.parse(selectedReport.evidence_images);
@@ -577,11 +676,48 @@ const Reports = () => {
         )}
 
         {imageViewerOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
-            <div className="bg-white rounded-lg shadow-lg p-4 relative max-w-lg w-full flex flex-col items-center">
-              <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-700" onClick={() => setImageViewerOpen(false)} title="Cerrar"><XMarkIcon className="h-6 w-6" /></button>
-              <img src={imageViewerSrc} alt="Evidencia" className="max-h-[60vh] w-auto rounded mb-4" />
-              <a href={imageViewerSrc} onClick={e => { e.preventDefault(); handleDownload(imageViewerSrc); }} className="btn-primary px-4 py-2 rounded text-white bg-blue-600 hover:bg-blue-700">Descargar imagen</a>
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
+            onClick={() => setImageViewerOpen(false)}
+          >
+            <div 
+              className="relative max-w-6xl w-full h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4 p-2">
+                <div className="text-white text-sm">
+                  Clic en el fondo para cerrar
+                </div>
+                <button 
+                  className="text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+                  onClick={() => setImageViewerOpen(false)} 
+                  title="Cerrar"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+                <img 
+                  src={imageViewerSrc} 
+                  alt="Evidencia" 
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+              
+              <div className="mt-4 flex justify-center p-4">
+                <a 
+                  href={imageViewerSrc} 
+                  onClick={(e) => { e.preventDefault(); handleDownload(imageViewerSrc); }} 
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors flex items-center"
+                  title="Descargar imagen"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  Descargar
+                </a>
+              </div>
             </div>
           </div>
         )}

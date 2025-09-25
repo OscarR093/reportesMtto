@@ -287,7 +287,7 @@ class PendingService {
     const headerStyle = {
       font: { bold: true, color: { argb: 'FFFFFF' },
       size: 12 },
-      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '4F46E5' } },
+      fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0000' } },  // Rojo
       alignment: { horizontal: 'center', vertical: 'middle' }
     };
 

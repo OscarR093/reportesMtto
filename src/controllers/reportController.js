@@ -519,7 +519,7 @@ class ReportController {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: '4472C4' }
+        fgColor: { argb: 'FF0000' }  // Rojo
       };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
       cell.border = {
@@ -542,7 +542,7 @@ class ReportController {
       fgColor: { argb: 'FFD966' }
     };
     morningTitleRow.getCell(1).font = { bold: true, size: 12 };
-    morningTitleRow.height = 20;
+    morningTitleRow.height = 25;
     
     // Agregar datos de turno matutino
     morningReports.forEach(report => {
@@ -559,7 +559,7 @@ class ReportController {
       
       // Estilo para filas de turno matutino
       row.eachCell((cell) => {
-        cell.font = { size: 10 };
+        cell.font = { size: 11 };
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
@@ -567,9 +567,8 @@ class ReportController {
           right: { style: 'thin' }
         };
       });
-      
       // Resaltar la descripción de la falla
-      row.getCell('description').font = { bold: true, size: 10 };
+      row.getCell('description').font = { bold: true, size: 11 };
       
       // Colorear según prioridad
       const priorityCell = row.getCell('priority');
@@ -587,6 +586,9 @@ class ReportController {
           priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FF00' } };
           break;
       }
+      
+      // Aumentar altura de fila
+      row.height = 25;
     });
     
     // Espacio entre turnos
@@ -601,7 +603,7 @@ class ReportController {
       fgColor: { argb: '8FAADC' }
     };
     eveningTitleRow.getCell(1).font = { bold: true, size: 12 };
-    eveningTitleRow.height = 20;
+    eveningTitleRow.height = 25;
     
     // Agregar datos de turno vespertino
     eveningReports.forEach(report => {
@@ -618,7 +620,7 @@ class ReportController {
       
       // Estilo para filas de turno vespertino
       row.eachCell((cell) => {
-        cell.font = { size: 10 };
+        cell.font = { size: 11 };
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
@@ -626,9 +628,8 @@ class ReportController {
           right: { style: 'thin' }
         };
       });
-      
       // Resaltar la descripción de la falla
-      row.getCell('description').font = { bold: true, size: 10 };
+      row.getCell('description').font = { bold: true, size: 11 };
       
       // Colorear según prioridad
       const priorityCell = row.getCell('priority');
@@ -646,6 +647,9 @@ class ReportController {
           priorityCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00FF00' } };
           break;
       }
+      
+      // Aumentar altura de fila
+      row.height = 25;
     });
     
     // Configurar página para impresión
