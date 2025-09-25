@@ -192,6 +192,34 @@ class PendingController {
       next(error);
     }
   }
+
+  /**
+   * Exportar actividades asignadas a Excel
+   */
+  async exportAssignedActivities(req, res, next) {
+    try {
+      const user = req.user;
+      
+      // Solo administradores pueden exportar
+      if (!user.isAdmin()) {
+        return res.status(403).json({
+          success: false,
+          error: 'No autorizado'
+        });
+      }
+
+      const excelBuffer = await pendingService.exportAssignedActivitiesToExcel();
+      
+      // Configurar headers para descarga
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=actividades_asignadas.xlsx');
+      
+      // Enviar el archivo Excel
+      res.send(excelBuffer);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new PendingController();

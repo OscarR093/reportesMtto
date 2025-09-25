@@ -297,11 +297,24 @@ const CreateReport = () => {
           newImages.push(result.data.url);
           newFilenames.push(result.data.originalName);
         } else {
-          toast.error(`Error al subir ${file.name}`);
+          // Handle error response with proper error message
+          let errorMessage = `Error al subir ${file.name}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (parseError) {
+            // If response is not JSON, use status text
+            errorMessage = response.statusText || errorMessage;
+          }
+          toast.error(errorMessage);
         }
       } catch (error) {
         console.error('Error uploading image:', error);
-        toast.error(`Error al subir ${file.name}`);
+        toast.error(`Error de conexión al subir ${file.name}`);
       }
     }
 

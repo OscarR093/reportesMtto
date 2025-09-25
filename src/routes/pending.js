@@ -14,5 +14,6 @@ router.put('/:id', requireAdmin, pendingController.updatePendingActivity);
 router.delete('/:id', requireAdmin, pendingController.deletePendingActivity);
 router.patch('/:id/assign', requireAdmin, pendingController.assignPendingActivity);
 router.get('/users/active', requireAdmin, pendingController.getActiveUsersForAssignment);
+router.get('/export', requireAdmin, pendingController.exportAssignedActivities);
 
 export default router;

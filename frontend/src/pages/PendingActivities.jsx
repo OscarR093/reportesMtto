@@ -108,6 +108,43 @@ const PendingActivities = () => {
     }));
   };
 
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/pending/export', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al exportar actividades');
+      }
+
+      // Obtener el blob del archivo Excel
+      const blob = await response.blob();
+      
+      // Crear un enlace para descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `actividades_asignadas_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpiar
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      setMessage('Archivo exportado exitosamente');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error exporting activities:', error);
+      setMessage(`Error al exportar actividades: ${error.message}`);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   if (!user || !isAdmin) {
     return (
       <Layout>
@@ -392,9 +429,17 @@ const PendingActivities = () => {
               Gestiona las actividades pendientes de mantenimiento
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            Añadir Actividad
-          </Button>
+          <div className="flex space-x-2">
+            <Button onClick={handleExport} variant="secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Exportar a Excel
+            </Button>
+            <Button onClick={() => setShowForm(true)}>
+              Añadir Actividad
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}

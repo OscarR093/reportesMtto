@@ -1,6 +1,29 @@
 export const errorHandler = (error, req, res, next) => {
   console.error('Error del servidor:', error);
 
+  // Error de Multer (subida de archivos)
+  if (error.code) {
+    const multerErrorCodes = [
+      'LIMIT_FILE_SIZE', 
+      'LIMIT_UNEXPECTED_FILE', 
+      'LIMIT_FIELD_KEY', 
+      'LIMIT_FIELD_VALUE', 
+      'LIMIT_FIELD_COUNT', 
+      'LIMIT_PART_COUNT',
+      'LIMIT_FILE_COUNT'
+    ];
+    
+    if (multerErrorCodes.includes(error.code)) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Error en la subida del archivo',
+        data: {
+          error: error.code
+        }
+      });
+    }
+  }
+
   // Error de JWT
   if (error.name === 'JsonWebTokenError') {
     return res.status(401).json({
