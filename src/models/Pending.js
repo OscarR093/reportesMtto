@@ -167,7 +167,18 @@ Pending.prototype.toSafeJSON = function() {
   }
   
   if (values.scheduled_date) {
-    values.scheduled_date = values.scheduled_date.toISOString();
+    // Si es un objeto Date, convertir a formato de solo fecha sin desplazamiento de zona horaria
+    if (values.scheduled_date instanceof Date) {
+      // Usar los componentes locales de la fecha para evitar desplazamiento de zona horaria
+      const date = values.scheduled_date;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes es 0-indexed
+      const day = String(date.getDate()).padStart(2, '0');
+      values.scheduled_date = `${year}-${month}-${day}`;
+    } else {
+      // Si ya es string, asegurar que solo contiene la fecha
+      values.scheduled_date = values.scheduled_date.toString().split('T')[0];
+    }
   }
   
   if (values.completed_at) {

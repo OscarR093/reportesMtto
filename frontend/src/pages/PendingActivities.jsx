@@ -22,6 +22,8 @@ const PendingActivities = () => {
     issue_type: 'correctivo',
     description: ''
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignData, setAssignData] = useState({
     assigned_users: [],
     scheduled_date: '',
@@ -163,6 +165,17 @@ const PendingActivities = () => {
       ...prev,
       ...equipment
     }));
+    
+    // Limpiar errores de equipo cuando se actualiza
+    if (formErrors.equipment_area || formErrors.equipment_machine || formErrors.equipment_element) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.equipment_area;
+        delete newErrors.equipment_machine;
+        delete newErrors.equipment_element;
+        return newErrors;
+      });
+    }
   };
 
   const handleChange = (e) => {
@@ -171,6 +184,15 @@ const PendingActivities = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Limpiar errores específicos cuando el usuario corrige un campo
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleAssignChange = (e) => {
@@ -183,6 +205,27 @@ const PendingActivities = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validación del formulario antes de enviar
+    const errors = {};
+    if (!formData.equipment_area) {
+      errors.equipment_area = 'El área del equipo es requerida';
+    }
+    if (!formData.description.trim()) {
+      errors.description = 'La descripción es requerida';
+    }
+    if (formData.description.trim().length < 10) {
+      errors.description = 'La descripción debe tener al menos 10 caracteres';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      setMessage('Por favor corrija los errores en el formulario');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormErrors({});
     
     try {
       const token = localStorage.getItem('token');
@@ -207,6 +250,7 @@ const PendingActivities = () => {
           issue_type: 'correctivo',
           description: ''
         });
+        setFormErrors({});
         setShowForm(false);
         // Refresh the activities list
         fetchPendingActivities();
@@ -215,6 +259,8 @@ const PendingActivities = () => {
       }
     } catch (error) {
       setMessage(`Error: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -253,8 +299,6 @@ const PendingActivities = () => {
       
       if (response.ok && result.success) {
         setMessage('Actividad actualizada exitosamente');
-        setShowEditModal(false);
-        setEditingActivity(null);
         // Limpiar el formulario
         setFormData({
           equipment_area: '',
@@ -263,6 +307,8 @@ const PendingActivities = () => {
           issue_type: 'correctivo',
           description: ''
         });
+        setShowEditModal(false);
+        setEditingActivity(null);
         // Refresh the activities list
         fetchPendingActivities();
       } else {
@@ -340,14 +386,14 @@ const PendingActivities = () => {
       
       if (response.ok && result.success) {
         setMessage('Actividad asignada exitosamente');
-        setShowAssignModal(false);
-        setAssigningActivity(null);
         // Limpiar datos de asignación
         setAssignData({
           assigned_users: [],
           scheduled_date: '',
           shift: '1'
         });
+        setShowAssignModal(false);
+        setAssigningActivity(null);
         // Refresh the activities list
         fetchPendingActivities();
       } else {
@@ -469,61 +515,157 @@ const PendingActivities = () => {
           </div>
         )}
 
+        {/* Modal de creación */}
         {showForm && (
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Nueva Actividad Pendiente
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <EquipmentSelector
-                value={formData}
-                onChange={handleEquipmentChange}
-                required
-              />
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Nueva Actividad Pendiente
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowForm(false);
+                      setFormErrors({});
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {message && (
+                  <div className={`mb-4 p-3 rounded-md ${
+                    message.includes('Error') 
+                      ? 'bg-red-50 text-red-800 border border-red-200' 
+                      : 'bg-green-50 text-green-800 border border-green-200'
+                  }`}>
+                    {message}
+                  </div>
+                )}
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Equipo <span className="text-red-500">*</span>
+                      </label>
+                      {formErrors.equipment_area && (
+                        <span className="text-sm text-red-600">{formErrors.equipment_area}</span>
+                      )}
+                    </div>
+                    <EquipmentSelector
+                      value={formData}
+                      onChange={handleEquipmentChange}
+                      required
+                    />
+                    {formErrors.equipment_area && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.equipment_area}</p>
+                    )}
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Tipo de Mantenimiento
-                </label>
-                <select
-                  name="issue_type"
-                  value={formData.issue_type}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                >
-                  <option value="preventivo">Preventivo</option>
-                  <option value="correctivo">Correctivo</option>
-                  <option value="mejora">Mejora</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Mantenimiento <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {[
+                        { value: 'preventivo', label: 'Preventivo', color: 'bg-blue-100 text-blue-800' },
+                        { value: 'correctivo', label: 'Correctivo', color: 'bg-yellow-100 text-yellow-800' },
+                        { value: 'mejora', label: 'Mejora', color: 'bg-purple-100 text-purple-800' }
+                      ].map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, issue_type: type.value }));
+                            // Limpiar error si existía
+                            if (formErrors.issue_type) {
+                              setFormErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.issue_type;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          className={`p-3 rounded-md border text-center transition-colors ${
+                            formData.issue_type === type.value
+                              ? `${type.color} border-transparent shadow-inner`
+                              : 'bg-white border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="font-medium">{type.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Descripción
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  required
-                />
-              </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Descripción <span className="text-red-500">*</span>
+                      </label>
+                      {formErrors.description && (
+                        <span className="text-sm text-red-600">{formErrors.description}</span>
+                      )}
+                    </div>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      rows={5}
+                      className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                        formErrors.description 
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                      }`}
+                      placeholder="Describe detalladamente la actividad pendiente..."
+                      minLength={10}
+                    />
+                    {formErrors.description && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.description}</p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      {formData.description.length}/10 caracteres mínimos
+                    </p>
+                  </div>
 
-              <div className="flex justify-end space-x-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  Crear Actividad
-                </Button>
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        setShowForm(false);
+                        setFormErrors({});
+                        setMessage(''); // Limpiar el mensaje al cerrar
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Procesando...
+                        </span>
+                      ) : (
+                        'Crear Actividad'
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </div>
-            </form>
+            </div>
           </div>
         )}
 
@@ -532,9 +674,34 @@ const PendingActivities = () => {
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
               <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Editar Actividad Pendiente
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Editar Actividad Pendiente
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditingActivity(null);
+                      setMessage(''); // Limpiar el mensaje al cerrar
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {message && (
+                  <div className={`mb-4 p-3 rounded-md ${
+                    message.includes('Error') 
+                      ? 'bg-red-50 text-red-800 border border-red-200' 
+                      : 'bg-green-50 text-green-800 border border-green-200'
+                  }`}>
+                    {message}
+                  </div>
+                )}
+                
                 <form onSubmit={handleUpdate} className="space-y-4">
                   <EquipmentSelector
                     value={formData}
@@ -562,6 +729,7 @@ const PendingActivities = () => {
                       onClick={() => {
                         setShowEditModal(false);
                         setEditingActivity(null);
+                        setMessage(''); // Limpiar el mensaje al cerrar
                       }}
                     >
                       Cancelar
@@ -581,9 +749,34 @@ const PendingActivities = () => {
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
             <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
               <div className="mt-3">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  {assigningActivity?.status === 'asignado' ? 'Modificar Asignación' : 'Asignar Actividad Pendiente'}
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {assigningActivity?.status === 'asignado' ? 'Modificar Asignación' : 'Asignar Actividad Pendiente'}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowAssignModal(false);
+                      setAssigningActivity(null);
+                      setMessage(''); // Limpiar el mensaje al cerrar
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                {message && (
+                  <div className={`mb-4 p-3 rounded-md ${
+                    message.includes('Error') 
+                      ? 'bg-red-50 text-red-800 border border-red-200' 
+                      : 'bg-green-50 text-green-800 border border-green-200'
+                  }`}>
+                    {message}
+                  </div>
+                )}
+                
                 <form onSubmit={handleAssignSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Columna izquierda - Usuarios disponibles */}
@@ -719,6 +912,7 @@ const PendingActivities = () => {
                       onClick={() => {
                         setShowAssignModal(false);
                         setAssigningActivity(null);
+                        setMessage(''); // Limpiar el mensaje al cerrar
                       }}
                     >
                       Cancelar
@@ -842,7 +1036,7 @@ const PendingActivities = () => {
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          Programado para: {new Date(activity.scheduled_date).toLocaleDateString('es-ES')} ({getShiftLabel(activity.shift)})
+                          Programado para: {new Date(activity.scheduled_date + 'T00:00:00').toLocaleDateString('es-ES')} ({getShiftLabel(activity.shift)})
                         </div>
                       )}
                     </div>

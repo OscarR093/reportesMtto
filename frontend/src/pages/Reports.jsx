@@ -217,47 +217,49 @@ const Reports = () => {
     const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporte</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipo</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Técnico</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedReports.map((report) => (
               <tr key={report.id} className="hover:bg-gray-50 cursor-pointer transition-colors duration-150" onClick={() => viewReportDetails(report)}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex flex-col items-start">
-                    <div className="text-base font-bold text-gray-900 mb-1">{report.description || 'Sin descripción'}</div>
-                    <div className="text-sm text-gray-500 mb-1">{report.title} {report.createdAt && `(${formatDate(report.createdAt)})`}</div>
-                    <div className="text-xs text-gray-500">{report.issue_type}</div>
-                    {report.evidence_images && (() => {
-                      try {
-                        const images = JSON.parse(report.evidence_images);
-                        return images.length > 0 && (
-                          <div className="flex items-center mt-1">
-                            <PhotoIcon className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-xs text-gray-500">{images.length} imagen(es)</span>
-                          </div>
-                        );
-                      } catch { return null; }
-                    })()}
+                <td className="px-4 py-3 max-w-xs">
+                  <div className="text-sm font-bold text-gray-900 truncate" title={report.description || 'Sin descripción'}>
+                    {report.description || 'Sin descripción'}
+                  </div>
+                  {report.evidence_images && (() => {
+                    try {
+                      const images = JSON.parse(report.evidence_images);
+                      return images.length > 0 && (
+                        <div className="flex items-center mt-1">
+                          <PhotoIcon className="h-4 w-4 text-gray-400 mr-1" />
+                          <span className="text-xs text-gray-500">{images.length}</span>
+                        </div>
+                      );
+                    } catch { return null; }
+                  })()}
+                </td>
+                <td className="px-4 py-3 max-w-xs">
+                  <div className="text-sm text-gray-900 truncate" title={report.equipment_display || report.equipment_element || report.equipment_machine || report.equipment_area}>
+                    {report.equipment_display || report.equipment_element || report.equipment_machine || report.equipment_area}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{report.equipment_display || `${report.equipment_area}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`}</div>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
+                    {report.priority.charAt(0).toUpperCase() + report.priority.slice(1)}
+                  </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>{report.priority}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap">
                   {canChangeStatus(report) && report.status !== 'cerrado' ? (
                     <select
                       value={report.status}
@@ -269,23 +271,25 @@ const Reports = () => {
                       <option value="cerrado">Cerrado</option>
                     </select>
                   ) : (
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>{report.status}</span>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
+                      {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                    </span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-3 max-w-xs">
                   <div className="flex items-center">
-                    <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <div className="text-sm text-gray-900">{report.technician_name}</div>
+                    <div className="text-sm text-gray-900 truncate" title={report.technician_name}>
+                      {report.technician_name}
+                    </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <div className="text-sm text-gray-900">{formatDate(report.createdAt)}</div>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">
+                    {new Date(report.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                  <div className="flex space-x-1" onClick={(e) => e.stopPropagation()}>
                     {canEditReport(report) && (
                       <button onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50" title="Editar"><PencilIcon className="h-4 w-4" /></button>
                     )}
@@ -409,38 +413,116 @@ const Reports = () => {
           </div>
         </div>
 
-        <div className="card">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <div className="lg:col-span-2">
-              <div className="relative">
-                <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="input-field pl-10"/>
-              </div>
-            </div>
-            <div><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="input-field">{statusOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
-            <div><select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="input-field">{priorityOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
-            <div><select value={filterArea} onChange={(e) => setFilterArea(e.target.value)} className="input-field">{areaOptions.map(option => (<option key={option.value} value={option.value}>{option.label}</option>))}</select></div>
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Filtros de Búsqueda</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+              <input 
+                type="date" 
+                value={selectedDate} 
+                onChange={(e) => setSelectedDate(e.target.value)} 
+                className="input-field w-full"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select 
+                value={filterStatus} 
+                onChange={(e) => setFilterStatus(e.target.value)} 
+                className="input-field w-full"
+              >
+                {statusOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+              <select 
+                value={filterPriority} 
+                onChange={(e) => setFilterPriority(e.target.value)} 
+                className="input-field w-full"
+              >
+                {priorityOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Área</label>
+              <select 
+                value={filterArea} 
+                onChange={(e) => setFilterArea(e.target.value)} 
+                className="input-field w-full"
+              >
+                {areaOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="xl:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input type="text" placeholder="Buscar reportes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input-field pl-10"/>
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar reportes..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="input-field-with-icon w-full"
+                />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Turno Matutino (6:00 - 17:59)</h2>
-            <span className="text-sm text-gray-500">{morningReports.length} reportes</span>
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Turno Matutino (6:00 - 17:59)</h2>
+                <p className="text-sm text-gray-500">Reportes del turno matutino</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <span className="h-2 w-2 rounded-full bg-blue-600 mr-2"></span>
+                {morningReports.length} reportes
+              </span>
+            </div>
           </div>
           {renderReportsTable(morningReports, 'Matutino')}
         </div>
 
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Turno Vespertino (18:00 - 5:59)</h2>
-            <span className="text-sm text-gray-500">{eveningReports.length} reportes</span>
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="bg-orange-100 p-2 rounded-lg mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Turno Vespertino (18:00 - 5:59)</h2>
+                <p className="text-sm text-gray-500">Reportes del turno vespertino</p>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                <span className="h-2 w-2 rounded-full bg-orange-600 mr-2"></span>
+                {eveningReports.length} reportes
+              </span>
+            </div>
           </div>
           {renderReportsTable(eveningReports, 'Vespertino')}
         </div>

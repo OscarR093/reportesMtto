@@ -191,6 +191,21 @@ class PendingService {
       throw new Error('El turno es requerido');
     }
 
+    // Validar que la fecha de programación no sea anterior a la fecha de creación
+    // Solo validar si ambas fechas son válidas
+    const creationDate = new Date(activity.created_at);
+    const scheduledDate = new Date(assignData.scheduled_date);
+    
+    if (!isNaN(creationDate.getTime()) && !isNaN(scheduledDate.getTime())) {
+      // Comparar solo las fechas (sin horas) para evitar problemas de zona horaria
+      const creationDateOnly = new Date(creationDate.getFullYear(), creationDate.getMonth(), creationDate.getDate());
+      const scheduledDateOnly = new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), scheduledDate.getDate());
+      
+      if (scheduledDateOnly < creationDateOnly) {
+        throw new Error('La fecha programada no puede ser anterior a la fecha de creación de la actividad');
+      }
+    }
+
     // Verificar que los usuarios asignados existan y estén activos
     const assignedUserIds = assignData.assigned_users;
     const users = await User.findAll({
@@ -205,10 +220,17 @@ class PendingService {
     }
 
     // Preparar datos para actualizar
+    // Extraer solo la parte de la fecha (YYYY-MM-DD) para evitar problemas de zona horaria
+    const scheduledDateStr = assignData.scheduled_date.split('T')[0];
+    // Crear una nueva fecha manteniendo la fecha local para evitar desplazamientos
+    // Usamos una fecha local en lugar de UTC para preservar la fecha seleccionada por el usuario
+    const [year, month, day] = scheduledDateStr.split('-').map(Number);
+    const localScheduledDate = new Date(year, month - 1, day); // Mes es 0-indexed
+    
     const updateData = {
       assigned_to: assignedUserIds[0], // Primer usuario asignado como referencia principal
       assigned_users: JSON.stringify(assignedUserIds),
-      scheduled_date: new Date(assignData.scheduled_date),
+      scheduled_date: localScheduledDate,
       shift: assignData.shift,
       status: 'asignado'
     };
@@ -313,15 +335,24 @@ class PendingService {
       let formattedDate = '';
       if (activity.scheduled_date) {
         try {
-          // Extraer la fecha en formato ISO y mantenerla en la misma fecha
-          const date = new Date(activity.scheduled_date);
-          // Aseguramos que trabajamos con la fecha local sin alterar el día
-          const year = date.getFullYear();
-          const month = date.getMonth();
-          const day = date.getDate();
-          // Crear una nueva fecha local para evitar efectos de zona horaria
-          const localDate = new Date(year, month, day);
-          formattedDate = format(localDate, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: es });
+          // Asegurar que estamos trabajando solo con la fecha local para evitar desplazamientos
+          let date;
+          if (typeof activity.scheduled_date === 'string') {
+            // Si es string, crear una nueva fecha local
+            const [year, month, day] = activity.scheduled_date.split('-').map(Number);
+            date = new Date(year, month - 1, day); // Mes es 0-indexed
+          } else if (activity.scheduled_date instanceof Date) {
+            // Si es Date, usar los componentes locales
+            const year = activity.scheduled_date.getFullYear();
+            const month = activity.scheduled_date.getMonth();
+            const day = activity.scheduled_date.getDate();
+            date = new Date(year, month, day); // Usar los mismos componentes para evitar desplazamiento
+          } else {
+            date = new Date(activity.scheduled_date);
+          }
+          
+          // Formatear usando la biblioteca date-fns
+          formattedDate = format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: es });
         } catch (error) {
           console.error('Error formatting date:', error);
           formattedDate = activity.scheduled_date;
