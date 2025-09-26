@@ -51,5 +51,5 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 # Exponer puerto
 EXPOSE 3002
 
-# Comando para migrar y luego iniciar la aplicación
-CMD ["sh", "-c", "node src/database/migrate.js && node server.js"]
+# Comando para iniciar la aplicación
+CMD ["node", "server.js"]

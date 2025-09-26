@@ -38,12 +38,11 @@ export const connectDatabase = async () => {
     const minioService = await import('../services/minioService.js');
     await minioService.default.initialize();
     
-    if (config.server.env === 'development') {
-      // Solo sincronizar sin alter para evitar errores de modificación
-      await sequelize.sync({ force: false, alter: false });
-      console.log('🔄 Modelos sincronizados con la base de datos');
-      console.log('🔗 Asociaciones de modelos configuradas');
-    }
+    // Sincronizar modelos con la base de datos - crear tablas si no existen
+    console.log('🔄 Sincronizando modelos con la base de datos...');
+    await sequelize.sync({ force: false, alter: false });
+    console.log('🔄 Modelos sincronizados con la base de datos');
+    console.log('🔗 Asociaciones de modelos configuradas');
     
     return true;
   } catch (error) {
