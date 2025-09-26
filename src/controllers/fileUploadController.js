@@ -410,17 +410,6 @@ class FileUploadController {
       next(error);
     }
   }
-
-    } catch (error) {
-      if (error.code === 'NoSuchKey') {
-        return res.status(404).json({
-          success: false,
-          error: 'Archivo no encontrado'
-        });
-      }
-      next(error);
-    }
-  }
 }
 
 const fileUploadController = new FileUploadController();
