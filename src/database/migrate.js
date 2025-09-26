@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Sequelize } from 'sequelize';
-import config from './src/config/index.js';
+import config from '../config/index.js';
 
 // Configuración de Sequelize para PostgreSQL
 const sequelize = new Sequelize(
