@@ -281,6 +281,16 @@ class App {
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
     });
+
+    // Manejo de rutas SPA: cualquier ruta que no sea /api sirve el index.html
+    this.app.get('*', (req, res, next) => {
+      if (!req.path.startsWith('/api')) {
+        const __dirname = path.dirname(fileURLToPath(import.meta.url));
+        res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+      } else {
+        next();
+      }
+    });
   }
 
   setupErrorHandling() {
