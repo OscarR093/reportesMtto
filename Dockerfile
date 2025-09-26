@@ -52,4 +52,4 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 EXPOSE 3002
 
 # Comando para iniciar la aplicación
-CMD ["/bin/sh", "-c", "npx sequelize-cli db:migrate --config src/config/database-config.cjs && node server.js"]
+CMD ["node", "server.js"]
