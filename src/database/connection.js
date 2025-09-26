@@ -3,14 +3,14 @@ import config from '../config/index.js';
 
 // Configuración de Sequelize para PostgreSQL
 const sequelize = new Sequelize(
-  config.database.name,
-  config.database.username,
-  config.database.password,
+  process.env.DB_NAME || process.env.POSTGRES_DB || 'reportes_mtto',
+  process.env.DB_USERNAME || process.env.POSTGRES_USER || 'reportes_user',
+  process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'reportes_password_2024',
   {
-    host: config.database.host,
-    port: config.database.port,
+    host: process.env.DB_HOST || process.env.POSTGRES_HOST || 'postgres',
+    port: process.env.DB_PORT || process.env.POSTGRES_PORT || 5432,
     dialect: 'postgres',
-    logging: config.server.env === 'development' ? console.log : false,
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {
       max: 5,
       min: 0,
