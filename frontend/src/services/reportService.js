@@ -18,7 +18,7 @@ class ReportService {
    * @returns {Promise} Report response
    */
   async getReportById(id) {
-    return apiService.get(API_CONFIG.ENDPOINTS.REPORTS_BY_ID(id));
+    return apiService.get(`/reports/${id}`);
   }
 
   /**
@@ -37,7 +37,7 @@ class ReportService {
    * @returns {Promise} Update response
    */
   async updateReport(id, reportData) {
-    return apiService.put(API_CONFIG.ENDPOINTS.REPORTS_BY_ID(id), reportData);
+    return apiService.put(`/reports/${id}`, reportData);
   }
 
   /**
@@ -46,7 +46,7 @@ class ReportService {
    * @returns {Promise} Delete response
    */
   async deleteReport(id) {
-    return apiService.delete(API_CONFIG.ENDPOINTS.REPORTS_BY_ID(id));
+    return apiService.delete(`/reports/${id}`);
   }
 
   /**
@@ -56,7 +56,7 @@ class ReportService {
    * @returns {Promise} Assign response
    */
   async assignReport(id, userId) {
-    return apiService.patch(API_CONFIG.ENDPOINTS.REPORTS_ASSIGN(id), { assigned_to: userId });
+    return apiService.patch(`/reports/${id}/assign`, { assigned_to: userId });
   }
 
   /**
@@ -67,7 +67,7 @@ class ReportService {
    * @returns {Promise} Status change response
    */
   async changeStatus(id, status, notes = null) {
-    return apiService.patch(API_CONFIG.ENDPOINTS.REPORTS_STATUS(id), { status, notes });
+    return apiService.patch(`/reports/${id}/status`, { status, notes });
   }
 
   /**
@@ -92,7 +92,7 @@ class ReportService {
    * @returns {Promise} User reports response
    */
   async getMyReports() {
-    return apiService.get(API_CONFIG.ENDPOINTS.REPORTS_MY);
+    return apiService.get('/reports/my');
   }
 
   /**
@@ -100,7 +100,7 @@ class ReportService {
    * @returns {Promise} Assigned reports response
    */
   async getAssignedReports() {
-    return apiService.get(API_CONFIG.ENDPOINTS.REPORTS_ASSIGNED);
+    return apiService.get('/reports/assigned');
   }
 
   /**
@@ -109,7 +109,7 @@ class ReportService {
    * @returns {Promise} Reports response
    */
   async getReportsByEquipment(areaKey) {
-    return apiService.get(API_CONFIG.ENDPOINTS.REPORTS_BY_EQUIPMENT(areaKey));
+    return apiService.get(`/reports/equipment/${areaKey}`);
   }
 }
 

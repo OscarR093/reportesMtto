@@ -26,7 +26,7 @@ const AuthCallback = () => {
           localStorage.setItem('token', token);
 
           // Verificar el token y obtener los datos del usuario
-          const response = await fetch('http://localhost:3000/api/auth/verify-token', {
+          const response = await fetch('/api/auth/verify-token', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

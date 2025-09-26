@@ -74,7 +74,7 @@ const Reports = () => {
       if (filterArea !== 'all') params.append('equipment_area', filterArea);
       if (searchTerm) params.append('search', searchTerm);
 
-      const response = await fetch(`http://localhost:3000/api/reports?${params}`, {
+      const response = await fetch(`/api/reports?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

@@ -82,7 +82,7 @@ const CompleteProfile = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/profile/complete', {
+      const response = await fetch('/api/profile/complete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

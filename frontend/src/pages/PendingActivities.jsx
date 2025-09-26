@@ -54,7 +54,7 @@ const PendingActivities = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/pending', {
+      const response = await fetch('/api/pending', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -76,7 +76,7 @@ const PendingActivities = () => {
   const fetchActiveUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/pending/users/active', {
+      const response = await fetch('/api/pending/users/active', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -113,7 +113,7 @@ const PendingActivities = () => {
   const handleExport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/pending/export', {
+      const response = await fetch('/api/pending/export', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -229,7 +229,7 @@ const PendingActivities = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/pending', {
+      const response = await fetch('/api/pending', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ const PendingActivities = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/pending/${editingActivity.id}`, {
+      const response = await fetch(`/api/pending/${editingActivity.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -326,7 +326,7 @@ const PendingActivities = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/pending/${id}`, {
+      const response = await fetch(`/api/pending/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -373,7 +373,7 @@ const PendingActivities = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/pending/${assigningActivity.id}/assign`, {
+      const response = await fetch(`/api/pending/${assigningActivity.id}/assign`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

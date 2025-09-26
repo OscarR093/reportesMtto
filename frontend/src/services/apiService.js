@@ -3,7 +3,7 @@ import API_CONFIG from '../config/api';
 
 class ApiService {
   constructor() {
-    this.baseURL = API_CONFIG.BASE_URL;
+    this.baseURL = API_CONFIG.baseUrl;
     this.defaultHeaders = API_CONFIG.HEADERS;
   }
 

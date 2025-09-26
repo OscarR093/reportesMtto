@@ -85,7 +85,7 @@ const CreateReport = () => {
   const fetchEquipmentData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/equipment/hierarchy', {
+      const response = await fetch('/api/equipment/hierarchy', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -117,7 +117,7 @@ const CreateReport = () => {
   const fetchReportData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/reports/${id}`, {
+      const response = await fetch(`/api/reports/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -286,7 +286,7 @@ const CreateReport = () => {
         uploadFormData.append('evidence', file);
 
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/files/evidence', {
+        const response = await fetch('/api/files/evidence', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: uploadFormData
@@ -372,7 +372,7 @@ const CreateReport = () => {
       finalFormData.evidence_filenames = JSON.stringify(finalFormData.evidence_filenames || []);
 
       const token = localStorage.getItem('token');
-      const url = id ? `http://localhost:3000/api/reports/${id}` : 'http://localhost:3000/api/reports';
+      const url = id ? `/api/reports/${id}` : '/api/reports';
       const method = id ? 'PUT' : 'POST';
       
       const response = await fetch(url, {

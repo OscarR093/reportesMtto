@@ -17,7 +17,7 @@ class AuthService {
    * Google OAuth login
    */
   loginWithGoogle() {
-    window.location.href = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH_GOOGLE}`;
+    window.location.href = `${API_CONFIG.baseUrl}${API_CONFIG.ENDPOINTS.AUTH_GOOGLE}`;
   }
 
   /**

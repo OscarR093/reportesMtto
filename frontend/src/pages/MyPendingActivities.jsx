@@ -29,7 +29,7 @@ const MyPendingActivities = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/my-pending/my', {
+      const response = await fetch('/api/my-pending/my', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -102,7 +102,7 @@ const MyPendingActivities = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/my-pending/my/${id}/complete`, {
+      const response = await fetch(`/api/my-pending/my/${id}/complete`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
