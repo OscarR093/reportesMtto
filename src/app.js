@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import passport from 'passport';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import config from './config/index.js';
 import setupPassport from './config/passport.js';
@@ -42,6 +44,10 @@ class App {
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Servir archivos estáticos del frontend
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  this.app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
     // Session para OAuth
     this.app.use(session({
@@ -270,13 +276,10 @@ class App {
       });
     });
 
-    // Root endpoint - redirect to API
+    // Root endpoint - servir index.html del frontend
     this.app.get('/', (req, res) => {
-      res.json({
-        success: true,
-        message: 'ReportesMtto Backend API',
-        redirectTo: '/api'
-      });
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
+      res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
     });
   }
 
