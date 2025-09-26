@@ -119,7 +119,7 @@ const Reports = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/reports/${reportId}`, {
+      const response = await fetch(`/api/reports/${reportId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -142,7 +142,7 @@ const Reports = () => {
   const handleStatusChange = async (reportId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/reports/${reportId}/status`, {
+      const response = await fetch(`/api/reports/${reportId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -345,7 +345,7 @@ const Reports = () => {
       if (filterArea !== 'all') params.append('equipment_area', filterArea);
       if (searchTerm) params.append('search', searchTerm);
 
-      const response = await fetch(`http://localhost:3000/api/reports/export?${params}`, {
+      const response = await fetch(`/api/reports/export?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
