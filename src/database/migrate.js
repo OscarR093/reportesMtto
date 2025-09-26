@@ -2,7 +2,6 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import config from '../config/index.js';
 
 const execPromise = promisify(exec);
 
@@ -10,15 +9,11 @@ async function runMigrations() {
   try {
     console.log('🔄 Ejecutando migraciones de Sequelize...');
     
-    // Preparar variables de entorno para la migración
+    // Usar DATABASE_URL para que sequelize-cli la reconozca automáticamente
     const env = {
       ...process.env,
-      NODE_ENV: config.server.env,
-      DB_HOST: config.database.host,
-      DB_PORT: config.database.port,
-      DB_NAME: config.database.name,
-      DB_USERNAME: config.database.username,
-      DB_PASSWORD: config.database.password
+      NODE_ENV: process.env.NODE_ENV || 'production',
+      DATABASE_URL: `postgres://${process.env.DB_USERNAME || process.env.POSTGRES_USER || 'reportes_user'}:${process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || 'reportes_password_2024'}@${process.env.DB_HOST || process.env.POSTGRES_HOST || 'postgres'}:${process.env.DB_PORT || process.env.POSTGRES_PORT || 5432}/${process.env.DB_NAME || process.env.POSTGRES_DB || 'reportes_mtto'}`
     };
     
     // Ejecutar las migraciones usando sequelize-cli

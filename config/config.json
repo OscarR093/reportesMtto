@@ -1,0 +1,22 @@
+{
+  "development": {
+    "username": "reportes_user",
+    "password": "reportes_password_2024",
+    "database": "reportes_mtto",
+    "host": "localhost",
+    "port": 5432,
+    "dialect": "postgres",
+    "logging": false,
+    "migrationStorageTableName": "sequelize_meta"
+  },
+  "production": {
+    "username": "reportes_user",
+    "password": "reportes_password_2024",
+    "database": "reportes_mtto",
+    "host": "postgres",
+    "port": 5432,
+    "dialect": "postgres",
+    "logging": false,
+    "migrationStorageTableName": "sequelize_meta"
+  }
+}
