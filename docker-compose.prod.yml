@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Servicio principal para la aplicación de reportes
   app:
-    image: oscarr093/reportes-mtto:latest
+    image: oscarr093/reportes-mtto:1.0
     container_name: reportes-mtto-app
     restart: unless-stopped
     environment:
