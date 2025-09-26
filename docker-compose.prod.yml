@@ -42,7 +42,7 @@ services:
       - "traefik.http.routers.reportes-mtto.rule=Host(`${REPORTES_DOMAIN}`)"
       - "traefik.http.routers.reportes-mtto.entrypoints=websecure"
       - "traefik.http.routers.reportes-mtto.tls.certresolver=letsencrypt"
-      - "traefik.http.services.reportes-mtto.loadbalancer.server.port=3000"
+      - "traefik.http.services.reportes-mtto.loadbalancer.server.port=3002"
 
   postgres:
     image: postgres:15-bullseye

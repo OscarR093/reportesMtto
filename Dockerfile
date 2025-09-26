@@ -49,7 +49,7 @@ COPY --from=backend-build /app/src/models ./models
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
 # Exponer puerto
-EXPOSE 3000
+EXPOSE 3002
 
 # Comando para iniciar la aplicación
 CMD ["node", "server.js"]
