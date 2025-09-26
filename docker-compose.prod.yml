@@ -104,4 +104,5 @@ volumes:
 
 networks:
   mi-red:
-    external: true  # Usar la red existente de tu instalación principal
+    external: true
+    name: monitoreotermico_mi-red
