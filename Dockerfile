@@ -42,7 +42,7 @@ COPY --from=backend-build /app/server.js ./
 COPY --from=backend-build /app/src ./src
 COPY --from=backend-build /app/config ./config
 COPY --from=backend-build /app/docker ./docker
-COPY --from=backend-build /app/src/migrations ./migrations
+COPY --from=backend-build /app/migrations ./migrations
 COPY --from=backend-build /app/src/models ./models
 
 # Copiar build del frontend
@@ -51,5 +51,5 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 # Exponer puerto
 EXPOSE 3002
 
-# Comando para iniciar la aplicación
-CMD ["node", "server.js"]
+# Comando para migrar y luego iniciar la aplicación
+CMD ["sh", "-c", "node src/database/migrate.js && node server.js"]
