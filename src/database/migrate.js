@@ -34,9 +34,9 @@ async function runMigrations() {
     console.log('🔄 Ejecutando migraciones...');
     
     // Importar todos los modelos para que Sequelize los registre
-    await import('./src/models/User.js');
-    await import('./src/models/Report.js');
-    await import('./src/models/Pending.js');
+    await import('../models/User.js');
+    await import('../models/Report.js');
+    await import('../models/Pending.js');
     
     // Sincronizar los modelos con la base de datos
     await sequelize.sync({ force: false, alter: false });
