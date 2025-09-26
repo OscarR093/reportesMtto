@@ -7,13 +7,13 @@ services:
     container_name: reportes-mtto-app
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
       - PORT=${PORT}
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=reportes_mtto
-      - DB_USERNAME=reportes_user
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=${POSTGRES_PORT}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USERNAME=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - SESSION_SECRET=${SESSION_SECRET}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT}
