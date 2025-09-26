@@ -235,9 +235,10 @@ class MinIOService {
    */
   async getFileUrl(bucketName, fileName, expires = 24 * 60 * 60) {
     try {
-      // Para buckets públicos, generar URL directa
+      // Para buckets públicos (como evidencias), generar URL que pase por el backend
       if (bucketName === this.buckets.evidencias) {
-        return `http://${config.minio.endpoint}:${config.minio.port}/${bucketName}/${fileName}`;
+        // Esta URL permitirá al frontend acceder a archivos públicos
+        return `/api/files/public/${bucketName}/${fileName}`;
       }
       
       // Para buckets privados, generar URL firmada

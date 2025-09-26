@@ -1,5 +1,6 @@
 import multer from 'multer';
 import minioService from '../services/minioService.js';
+import config from '../config/index.js';
 
 // Configuración de Multer para almacenamiento en memoria
 const storage = multer.memoryStorage();
@@ -364,6 +365,59 @@ class FileUploadController {
         }
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Servir archivo desde MinIO
+   */
+  async serveFile(req, res, next) {
+    try {
+      const { bucket, fileName } = req.params;
+
+      // Validar que el bucket sea uno de los permitidos
+      const allowedBuckets = Object.values(minioService.buckets);
+      if (!allowedBuckets.includes(bucket)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bucket no válido'
+        });
+      }
+
+      // Verificar que el archivo exista y obtener sus metadatos
+      const stat = await minioService.getFileInfo(bucket, fileName);
+      
+      // Establecer headers apropiados
+      res.set({
+        'Content-Type': stat.metadata['content-type'] || 'application/octet-stream',
+        'Content-Length': stat.size,
+        'Last-Modified': stat.lastModified.toUTCString(),
+        'Cache-Control': 'public, max-age=3600' // Cache por 1 hora
+      });
+
+      // Crear stream del archivo y enviarlo
+      const stream = await minioService.client.getObject(bucket, fileName);
+      stream.pipe(res);
+    } catch (error) {
+      if (error.code === 'NoSuchKey') {
+        return res.status(404).json({
+          success: false,
+          error: 'Archivo no encontrado'
+        });
+      }
+      console.error('Error sirviendo archivo:', error);
+      next(error);
+    }
+  }
+
+    } catch (error) {
+      if (error.code === 'NoSuchKey') {
+        return res.status(404).json({
+          success: false,
+          error: 'Archivo no encontrado'
+        });
+      }
       next(error);
     }
   }

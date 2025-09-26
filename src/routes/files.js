@@ -29,6 +29,9 @@ router.post('/document',
   fileUploadController.uploadDocument
 );
 
+// File serving routes (public for evidencias bucket)
+router.get('/public/:bucket/:fileName', fileUploadController.serveFile);
+
 // File management routes
 router.get('/:bucket/:fileName/info', authenticateToken, fileUploadController.getFileInfo);
 router.get('/:bucket/:fileName/download', authenticateToken, fileUploadController.generateDownloadUrl);
