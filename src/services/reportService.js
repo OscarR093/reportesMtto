@@ -2,6 +2,7 @@ import Report from '../models/Report.js';
 import User from '../models/User.js';
 import equipmentService from './equipmentService.js';
 import { Op } from 'sequelize';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 class ReportService {
   /**
@@ -268,26 +269,32 @@ class ReportService {
       }
       if (filters.equipment_machine) where.equipment_machine = filters.equipment_machine;
 
-      // Filtro por fecha y turno (LÓGICA MEJORADA Y CENTRALIZADA)
+      // Filtro por fecha y turno (LÓGICA MEJORADA Y CENTRALIZADA con zona horaria)
       if (filters.date && filters.shift) {
+        const timeZone = 'America/Mexico_City'; // Usamos zona horaria estándar
         // Parsear la fecha correctamente
         const [year, month, day] = filters.date.split('-').map(Number);
         const baseDate = new Date(year, month - 1, day); // Month is 0-indexed
+        baseDate.setHours(0, 0, 0, 0);
 
         if (filters.shift === 'morning') {
-          // Turno matutino: 6:00 - 17:59 del día seleccionado
+          // Turno matutino: 6:00 - 17:59 del día seleccionado en zona horaria local
           const shiftStart = new Date(baseDate);
           shiftStart.setHours(6, 0, 0, 0);
           
           const shiftEnd = new Date(baseDate);
           shiftEnd.setHours(17, 59, 59, 999);
           
+          // Convertir a UTC para la búsqueda en la base de datos
+          const utcShiftStart = fromZonedTime(shiftStart, timeZone);
+          const utcShiftEnd = fromZonedTime(shiftEnd, timeZone);
+          
           where.created_at = {
-            [Op.between]: [shiftStart, shiftEnd]
+            [Op.between]: [utcShiftStart, utcShiftEnd]
           };
 
         } else if (filters.shift === 'evening') {
-          // Turno vespertino: 18:00 del día seleccionado - 05:59 del día SIGUIENTE
+          // Turno vespertino: 18:00 del día seleccionado - 05:59 del día SIGUIENTE en zona horaria local
           const startRange1 = new Date(baseDate);
           startRange1.setHours(18, 0, 0, 0);
           
@@ -303,10 +310,20 @@ class ReportService {
           const endRange2 = new Date(nextDay);
           endRange2.setHours(5, 59, 59, 999);
           
+          // Convertir ambos rangos a UTC para la búsqueda en la base de datos
+          const utcStartRange1 = fromZonedTime(startRange1, timeZone);
+          const utcEndRange1 = fromZonedTime(endRange1, timeZone);
+          const utcStartRange2 = fromZonedTime(startRange2, timeZone);
+          const utcEndRange2 = fromZonedTime(endRange2, timeZone);
+          
           where.created_at = {
             [Op.or]: [
-              { [Op.between]: [startRange1, endRange1] },
-              { [Op.between]: [startRange2, endRange2] }
+              {
+                [Op.between]: [utcStartRange1, utcEndRange1]
+              },
+              {
+                [Op.between]: [utcStartRange2, utcEndRange2]
+              }
             ]
           };
         }
@@ -417,28 +434,31 @@ class ReportService {
   /**
    * Determinar a qué turno pertenece una fecha/hora específica
    */
-  getShiftForDateTime(dateTime) {
+  getShiftForDateTime(dateTime, timeZone = 'America/Mexico_City') {
+    // Convertir la fecha a la zona horaria específica
     const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
+    const zonedDate = toZonedTime(date, timeZone);
+    
+    const hours = zonedDate.getHours();
+    const minutes = zonedDate.getMinutes();
     
     // Si está entre las 6:00 y 17:59, es turno matutino
     if (hours >= 6 && hours < 18) {
-      return { shift: 'morning', date: this.formatDate(date) };
+      return { shift: 'morning', date: this.formatDate(zonedDate) };
     } 
     // Si está entre las 18:00 y 23:59, es turno vespertino del día actual
     else if (hours >= 18 && hours <= 23) {
-      return { shift: 'evening', date: this.formatDate(date) };
+      return { shift: 'evening', date: this.formatDate(zonedDate) };
     } 
     // Si está entre las 0:00 y 5:59, es turno vespertino del día anterior
     else if (hours >= 0 && hours <= 5) {
-      const prevDay = new Date(date);
+      const prevDay = new Date(zonedDate);
       prevDay.setDate(prevDay.getDate() - 1);
       return { shift: 'evening', date: this.formatDate(prevDay) };
     }
     
     // Por defecto, matutino del día actual
-    return { shift: 'morning', date: this.formatDate(date) };
+    return { shift: 'morning', date: this.formatDate(zonedDate) };
   }
   
   /**
