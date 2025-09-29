@@ -10,12 +10,14 @@ import {
 } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import toast from 'react-hot-toast';
+import { compressImage } from '../utils/imageCompressor';
 
 const CreateReport = () => {
   const navigate = useNavigate();
   const { id } = useParams(); // ID del reporte para edición
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [imageUploadLoading, setImageUploadLoading] = useState(false);
   const [equipmentData, setEquipmentData] = useState(null);
   const [isEditMode, setIsEditMode] = useState(!!id);
   const [originalReport, setOriginalReport] = useState(null);
@@ -267,6 +269,8 @@ const CreateReport = () => {
       return;
     }
 
+    setImageUploadLoading(true); // Mostrar indicador de carga
+
     const newImages = [];
     const newFilenames = [];
 
@@ -276,14 +280,17 @@ const CreateReport = () => {
         continue;
       }
 
-      if (file.size > 5 * 1024 * 1024) { // 5MB
-        toast.error('Las imágenes deben ser menores a 5MB');
+      // First, compress the image to reduce size and convert to WebP
+      const compressedFile = await compressImage(file);
+
+      if (compressedFile.size > 3 * 1024 * 1024) { // 3MB limit after compression
+        toast.error(`La imagen ${file.name} es demasiado pesada después de la compresión`);
         continue;
       }
 
       try {
         const uploadFormData = new FormData();
-        uploadFormData.append('evidence', file);
+        uploadFormData.append('evidence', compressedFile);
 
         const token = localStorage.getItem('token');
         const response = await fetch('/api/files/evidence', {
@@ -323,6 +330,8 @@ const CreateReport = () => {
       evidence_images: [...prev.evidence_images, ...newImages],
       evidence_filenames: [...prev.evidence_filenames, ...newFilenames]
     }));
+
+    setImageUploadLoading(false); // Ocultar indicador de carga
   };
 
   const removeImage = (index) => {
@@ -635,20 +644,36 @@ const CreateReport = () => {
             <div className="space-y-4">
               {formData.evidence_images.length < 3 && (
                 <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors bg-blue-25"
+                  onClick={() => !imageUploadLoading && fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors bg-blue-25 ${
+                    imageUploadLoading 
+                      ? 'border-gray-300 bg-gray-100 cursor-not-allowed' 
+                      : 'border-blue-300 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
                 >
                   <div className="flex flex-col items-center">
-                    <PhotoIcon className="h-12 w-12 text-blue-500 mb-3" />
-                    <p className="text-lg font-medium text-blue-700 mb-1">
-                      Toca para agregar fotos
+                    {imageUploadLoading ? (
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-3"></div>
+                    ) : (
+                      <PhotoIcon className="h-12 w-12 text-blue-500 mb-3" />
+                    )}
+                    <p className={`text-lg font-medium mb-1 ${imageUploadLoading ? 'text-gray-500' : 'text-blue-700'}`}>
+                      {imageUploadLoading ? 'Subiendo imágenes...' : 'Toca para agregar fotos'}
                     </p>
-                    <p className="text-sm text-blue-600">
-                      O arrastra las imágenes aquí
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Formatos: PNG, JPG • Máximo 5MB cada una
-                    </p>
+                    {!imageUploadLoading && (
+                      <p className="text-sm text-blue-600">
+                        O arrastra las imágenes aquí
+                      </p>
+                    )}
+                    {imageUploadLoading ? (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Por favor espera mientras se suben las imágenes...
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Formatos: PNG, JPG • Máximo 5MB cada una
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -660,7 +685,18 @@ const CreateReport = () => {
                 accept="image/*"
                 onChange={(e) => handleImageUpload(Array.from(e.target.files))}
                 className="hidden"
+                disabled={imageUploadLoading}
               />
+
+              {imageUploadLoading && (
+                <div className="text-center py-4">
+                  <div className="inline-flex items-center text-blue-600">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-2"></div>
+                    <span>Procesando y subiendo imágenes...</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">Esto puede tomar unos segundos</p>
+                </div>
+              )}
 
               {formData.evidence_images.length > 0 && (
                 <div>
@@ -725,7 +761,7 @@ const CreateReport = () => {
             </button>
             <button
               type="submit"
-              disabled={loading || !formData.description || !formData.equipment_area}
+              disabled={loading || imageUploadLoading || !formData.description || !formData.equipment_area}
               className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors flex items-center justify-center min-w-[140px]"
             >
               {loading ? (

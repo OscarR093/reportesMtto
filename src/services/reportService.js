@@ -257,7 +257,15 @@ class ReportService {
       if (filters.status) where.status = filters.status;
       if (filters.priority) where.priority = filters.priority;
       if (filters.issue_type) where.issue_type = filters.issue_type;
-      if (filters.equipment_area) where.equipment_area = filters.equipment_area;
+      if (filters.equipment_area) {
+        // Si equipment_area contiene múltiples valores separados por coma, usar Op.in
+        if (typeof filters.equipment_area === 'string' && filters.equipment_area.includes(',')) {
+          const areas = filters.equipment_area.split(',').map(area => area.trim());
+          where.equipment_area = { [Op.in]: areas };
+        } else {
+          where.equipment_area = filters.equipment_area;
+        }
+      }
       if (filters.equipment_machine) where.equipment_machine = filters.equipment_machine;
 
       // Filtro por fecha y turno (LÓGICA MEJORADA Y CENTRALIZADA)

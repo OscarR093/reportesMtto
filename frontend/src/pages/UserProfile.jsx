@@ -1,16 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  UserIcon, 
-  PencilIcon, 
+  UserCircleIcon, 
+  EnvelopeIcon, 
+  PhoneIcon, 
+  BuildingOfficeIcon,
+  ArrowUpTrayIcon,
+  UserIcon,
+  LockClosedIcon,
+  PencilIcon,
+  ExclamationTriangleIcon,
   PhotoIcon,
   CheckIcon,
   XMarkIcon,
-  EyeIcon,
   EyeSlashIcon,
-  ExclamationTriangleIcon
+  EyeIcon
 } from '@heroicons/react/24/outline';
+import Layout from '../components/Layout';
+import { useAuth } from '../hooks/useAuth';
 import { toast } from 'react-hot-toast';
+import { compressImage } from '../utils/imageCompressor';
 
 const UserProfile = () => {
   const { user, updateUser } = useAuth();
@@ -274,16 +283,24 @@ const UserProfile = () => {
       return;
     }
 
-    // Validar tamaño (5MB máximo)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('La imagen debe ser menor a 5MB');
+    // Compress the image to reduce size and convert to WebP
+    const compressedFile = await compressImage(file, {
+      maxSizeMB: 0.5,           // Smaller size for avatars
+      maxWidthOrHeight: 800,    // Lower resolution for avatars
+      useWebP: true,           // Convert to WebP
+      quality: 0.8             // Good quality for avatars
+    });
+
+    // Validate size after compression (3MB limit)
+    if (compressedFile.size > 3 * 1024 * 1024) {
+      toast.error('La imagen es demasiado pesada después de la compresión. Intente con una imagen más pequeña.');
       return;
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('photo', file);
+      formData.append('photo', compressedFile);
 
       const response = await fetch('/api/auth/upload-photo', {
         method: 'POST',

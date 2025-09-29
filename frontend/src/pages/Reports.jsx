@@ -28,7 +28,14 @@ const Reports = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterArea, setFilterArea] = useState('all');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Usar la fecha local del usuario en formato YYYY-MM-DD
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Meses empiezan en 0
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [selectedReport, setSelectedReport] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -54,6 +61,7 @@ const Reports = () => {
 
   const areaOptions = [
     { value: 'all', label: 'Todas las áreas' },
+    { value: 'fusion_moldeo', label: 'Fusión y Moldeo' },
     { value: 'fusion', label: 'Fusión' },
     { value: 'moldeo', label: 'Moldeo' },
     { value: 'mecanizado', label: 'Mecanizado' }
@@ -71,7 +79,11 @@ const Reports = () => {
       });
       if (filterStatus !== 'all') params.append('status', filterStatus);
       if (filterPriority !== 'all') params.append('priority', filterPriority);
-      if (filterArea !== 'all') params.append('equipment_area', filterArea);
+      if (filterArea !== 'all' && filterArea !== 'fusion_moldeo') {
+        params.append('equipment_area', filterArea);
+      } else if (filterArea === 'fusion_moldeo') {
+        params.append('equipment_area', 'fusion,moldeo');
+      }
       if (searchTerm) params.append('search', searchTerm);
 
       const response = await fetch(`/api/reports?${params}`, {
@@ -308,16 +320,41 @@ const Reports = () => {
 
   const handleDownload = async (url) => {
     try {
-      const response = await fetch(url, { credentials: 'include' });
-      if (!response.ok) throw new Error('No se pudo descargar la imagen');
-      const blob = await response.blob();
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = url.split('/').pop();
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
+      // Extraer bucket y nombre de archivo de la URL original
+      // La URL tiene formato: /api/files/public/evidencias/nombre_archivo.webp
+      if (url.startsWith('/api/files/public/')) {
+        // URL ya está en formato correcto para conversión
+        const response = await fetch(url, { credentials: 'include' });
+        if (!response.ok) throw new Error('No se pudo descargar la imagen');
+        
+        // Forzar que la descarga sea como JPG
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = url.split('/').pop();
+        if (filename.toLowerCase().endsWith('.webp')) {
+          filename = filename.substring(0, filename.lastIndexOf('.')) + '.jpg';
+        }
+        
+        const blob = await response.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      } else {
+        // URL externa o directa
+        const response = await fetch(url, { credentials: 'include' });
+        if (!response.ok) throw new Error('No se pudo descargar la imagen');
+        const blob = await response.blob();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = url.split('/').pop();
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+      }
     } catch (err) {
       toast.error('Error al descargar la imagen');
     }
@@ -342,7 +379,11 @@ const Reports = () => {
       // Agregar filtros solo si no son 'all'
       if (filterStatus !== 'all') params.append('status', filterStatus);
       if (filterPriority !== 'all') params.append('priority', filterPriority);
-      if (filterArea !== 'all') params.append('equipment_area', filterArea);
+      if (filterArea !== 'all' && filterArea !== 'fusion_moldeo') {
+        params.append('equipment_area', filterArea);
+      } else if (filterArea === 'fusion_moldeo') {
+        params.append('equipment_area', 'fusion,moldeo');
+      }
       if (searchTerm) params.append('search', searchTerm);
 
       const response = await fetch(`/api/reports/export?${params}`, {

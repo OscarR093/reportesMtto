@@ -1,6 +1,7 @@
 import multer from 'multer';
 import minioService from '../services/minioService.js';
 import config from '../config/index.js';
+import sharp from 'sharp';
 
 // Configuración de Multer para almacenamiento en memoria
 const storage = multer.memoryStorage();
@@ -388,17 +389,46 @@ class FileUploadController {
       // Verificar que el archivo exista y obtener sus metadatos
       const stat = await minioService.getFileInfo(bucket, fileName);
       
-      // Establecer headers apropiados
-      res.set({
-        'Content-Type': stat.metadata['content-type'] || 'application/octet-stream',
-        'Content-Length': stat.size,
-        'Last-Modified': stat.lastModified.toUTCString(),
-        'Cache-Control': 'public, max-age=3600' // Cache por 1 hora
-      });
-
-      // Crear stream del archivo y enviarlo
-      const stream = await minioService.client.getObject(bucket, fileName);
-      stream.pipe(res);
+      // Obtener stream del archivo
+      const fileStream = await minioService.client.getObject(bucket, fileName);
+      
+      // Si es una imagen WebP, convertirla a JPG para mejor compatibilidad
+      const isWebP = stat.metadata['content-type']?.includes('image/webp') || fileName.toLowerCase().endsWith('.webp');
+      
+      if (isWebP) {
+        // Convertir stream a buffer y luego a JPG
+        const chunks = [];
+        for await (const chunk of fileStream) {
+          chunks.push(chunk);
+        }
+        const buffer = Buffer.concat(chunks);
+        
+        // Convertir WebP a JPEG usando sharp
+        const convertedBuffer = await sharp(buffer)
+          .jpeg({ quality: 85 })
+          .toBuffer();
+          
+        // Enviar imagen convertida como JPEG
+        res.set({
+          'Content-Type': 'image/jpeg',
+          'Content-Length': convertedBuffer.length,
+          'Last-Modified': stat.lastModified.toUTCString(),
+          'Cache-Control': 'public, max-age=3600',
+          'Content-Disposition': 'inline' // Para visualización en línea
+        });
+        
+        res.send(convertedBuffer);
+      } else {
+        // Para otros tipos de archivo, enviar directamente
+        res.set({
+          'Content-Type': stat.metadata['content-type'] || 'application/octet-stream',
+          'Content-Length': stat.size,
+          'Last-Modified': stat.lastModified.toUTCString(),
+          'Cache-Control': 'public, max-age=3600' // Cache por 1 hora
+        });
+        
+        fileStream.pipe(res);
+      }
     } catch (error) {
       if (error.code === 'NoSuchKey') {
         return res.status(404).json({
