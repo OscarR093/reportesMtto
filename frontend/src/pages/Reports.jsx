@@ -228,7 +228,83 @@ const Reports = () => {
 
     const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    return (
+    // Versión móvil: Cards
+    const renderMobileCards = () => (
+      <div className="space-y-3">
+        {sortedReports.map((report) => (
+          <div 
+            key={report.id} 
+            className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => viewReportDetails(report)}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-gray-900 truncate" title={report.description || 'Sin descripción'}>
+                  {report.description || 'Sin descripción'}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {report.equipment_display || report.equipment_element || report.equipment_machine || report.equipment_area}
+                </p>
+              </div>
+              <div className="flex flex-col items-end ml-2">
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(report.priority)}`}>
+                  {report.priority.charAt(0).toUpperCase() + report.priority.slice(1)}
+                </span>
+                <span className={`mt-1 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(report.status)}`}>
+                  {report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
+              <div className="flex items-center">
+                <UserIcon className="h-4 w-4 mr-1" />
+                <span>{report.technician_name}</span>
+              </div>
+              <div>
+                {new Date(report.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+
+            {report.evidence_images && (() => {
+              try {
+                const images = JSON.parse(report.evidence_images);
+                return images.length > 0 && (
+                  <div className="flex items-center text-sm text-gray-500">
+                    <PhotoIcon className="h-4 w-4 mr-1" />
+                    <span>{images.length} imagen{images.length > 1 ? 'es' : ''}</span>
+                  </div>
+                );
+              } catch { return null; }
+            })()}
+
+            <div className="flex space-x-2 mt-3">
+              {canEditReport(report) && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} 
+                  className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 flex items-center justify-center min-h-[40px] min-w-[40px]"
+                  title="Editar"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </button>
+              )}
+              {canDeleteReport(report) && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} 
+                  className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 flex items-center justify-center min-h-[40px] min-w-[40px]"
+                  title="Eliminar"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+    // Versión desktop: Tabla
+    const renderDesktopTable = () => (
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -303,10 +379,10 @@ const Reports = () => {
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                   <div className="flex space-x-1" onClick={(e) => e.stopPropagation()}>
                     {canEditReport(report) && (
-                      <button onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50" title="Editar"><PencilIcon className="h-4 w-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 flex items-center justify-center min-h-[40px] min-w-[40px] sm:p-1 sm:min-h-[auto] sm:min-w-[auto]" title="Editar"><PencilIcon className="h-4 w-4" /></button>
                     )}
                     {canDeleteReport(report) && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" title="Eliminar"><TrashIcon className="h-4 w-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 flex items-center justify-center min-h-[40px] min-w-[40px] sm:p-1 sm:min-h-[auto] sm:min-w-[auto]" title="Eliminar"><TrashIcon className="h-4 w-4" /></button>
                     )}
                   </div>
                 </td>
@@ -315,6 +391,17 @@ const Reports = () => {
           </tbody>
         </table>
       </div>
+    );
+
+    return (
+      <>
+        <div className="hidden md:block">
+          {renderDesktopTable()}
+        </div>
+        <div className="md:hidden">
+          {renderMobileCards()}
+        </div>
+      </>
     );
   };
 

@@ -25,7 +25,7 @@ const Input = ({
           error 
             ? 'border-red-300 focus:border-red-500 focus:ring-red-500' 
             : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-        } shadow-sm focus:ring-2 focus:ring-opacity-50 sm:text-sm`}
+        } shadow-sm focus:ring-2 focus:ring-opacity-50 text-base sm:text-sm min-h-[44px]`}
         {...props}
       />
       {error && (

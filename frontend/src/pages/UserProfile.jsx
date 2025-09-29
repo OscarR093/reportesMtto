@@ -355,35 +355,45 @@ const UserProfile = () => {
     );
   }
 
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header con botón de regreso */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <input
-                type="file"
-                id="photo-upload"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-              />
-              <UserAvatar 
-                user={profileData} 
-                size="2xl" 
-                editable={true}
-                onEdit={() => document.getElementById('photo-upload').click()}
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
-                <p className="text-gray-600">{user.position || 'Sin cargo asignado'}</p>
-                <p className="text-sm text-gray-500">{user.department || 'Sin departamento'}</p>
-                {isGoogleUser() && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
-                    Cuenta Google
-                  </span>
-                )}
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                ← Volver
+              </button>
+              <div className="flex items-center space-x-6">
+                <input
+                  type="file"
+                  id="photo-upload"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+                <UserAvatar 
+                  user={profileData} 
+                  size="2xl" 
+                  editable={true}
+                  onEdit={() => document.getElementById('photo-upload').click()}
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                  <p className="text-gray-600">{user.position || 'Sin cargo asignado'}</p>
+                  <p className="text-sm text-gray-500">{user.department || 'Sin departamento'}</p>
+                  {isGoogleUser() && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
+                      Cuenta Google
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex space-x-3">

@@ -56,7 +56,7 @@ const Layout = ({ children }) => {
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+              className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 flex items-center justify-center min-h-[44px] min-w-[44px]"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -173,7 +173,7 @@ const Layout = ({ children }) => {
         <div className="sticky top-0 z-10 flex h-16 bg-white shadow">
           <button
             type="button"
-            className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden"
+            className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden flex items-center justify-center min-h-[44px] min-w-[44px]"
             onClick={() => setSidebarOpen(true)}
           >
             <Bars3Icon className="h-6 w-6" />
