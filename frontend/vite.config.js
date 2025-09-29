@@ -11,7 +11,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3002',//cambiar a 3002 para produccion, 3000 para desarrollo 
+        target: 'http://localhost:3000',//cambiar a 3002 para produccion, 3000 para desarrollo 
         changeOrigin: true,
         secure: false
       }
