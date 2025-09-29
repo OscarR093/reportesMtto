@@ -415,6 +415,43 @@ class ReportService {
   }
 
   /**
+   * Determinar a qué turno pertenece una fecha/hora específica
+   */
+  getShiftForDateTime(dateTime) {
+    const date = typeof dateTime === 'string' ? new Date(dateTime) : dateTime;
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    // Si está entre las 6:00 y 17:59, es turno matutino
+    if (hours >= 6 && hours < 18) {
+      return { shift: 'morning', date: this.formatDate(date) };
+    } 
+    // Si está entre las 18:00 y 23:59, es turno vespertino del día actual
+    else if (hours >= 18 && hours <= 23) {
+      return { shift: 'evening', date: this.formatDate(date) };
+    } 
+    // Si está entre las 0:00 y 5:59, es turno vespertino del día anterior
+    else if (hours >= 0 && hours <= 5) {
+      const prevDay = new Date(date);
+      prevDay.setDate(prevDay.getDate() - 1);
+      return { shift: 'evening', date: this.formatDate(prevDay) };
+    }
+    
+    // Por defecto, matutino del día actual
+    return { shift: 'morning', date: this.formatDate(date) };
+  }
+  
+  /**
+   * Formatear fecha como YYYY-MM-DD
+   */
+  formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  /**
    * Eliminar un reporte (solo administradores)
    */
   async deleteReport(reportId, user) {
