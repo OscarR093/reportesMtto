@@ -1,5 +1,6 @@
 import reportService from '../services/reportService.js';
 import ExcelJS from 'exceljs';
+import { formatInTimeZone } from 'date-fns-tz';
 
 class ReportController {
   /**
@@ -548,7 +549,7 @@ class ReportController {
     morningReports.forEach(report => {
       const row = worksheet.addRow({
         shift: 'Matutino',
-        time: report.createdAt ? new Date(report.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+        time: report.createdAt ? formatInTimeZone(new Date(report.createdAt), 'America/Mexico_City', 'HH:mm') : '',
         technician: report.technician_name || '',
         equipment: `${report.equipment_area || ''}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`,
         priority: report.priority || '',
@@ -609,7 +610,7 @@ class ReportController {
     eveningReports.forEach(report => {
       const row = worksheet.addRow({
         shift: 'Vespertino',
-        time: report.createdAt ? new Date(report.createdAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '',
+        time: report.createdAt ? formatInTimeZone(new Date(report.createdAt), 'America/Mexico_City', 'HH:mm') : '',
         technician: report.technician_name || '',
         equipment: `${report.equipment_area || ''}${report.equipment_machine ? ` - ${report.equipment_machine}` : ''}`,
         priority: report.priority || '',
