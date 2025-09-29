@@ -278,11 +278,11 @@ const Reports = () => {
               } catch { return null; }
             })()}
 
-            <div className="flex space-x-2 mt-3">
+            <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0 mt-3">
               {canEditReport(report) && (
                 <button 
                   onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} 
-                  className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 flex items-center justify-center min-h-[40px] min-w-[40px]"
+                  className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 flex items-center justify-center min-h-[40px] min-w-[40px] sm:p-2"
                   title="Editar"
                 >
                   <PencilIcon className="h-5 w-5" />
@@ -291,7 +291,7 @@ const Reports = () => {
               {canDeleteReport(report) && (
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} 
-                  className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 flex items-center justify-center min-h-[40px] min-w-[40px]"
+                  className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 flex items-center justify-center min-h-[40px] min-w-[40px] sm:p-2"
                   title="Eliminar"
                 >
                   <TrashIcon className="h-5 w-5" />
@@ -377,12 +377,12 @@ const Reports = () => {
                   </div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-col md:flex-row md:space-x-1 space-y-1 md:space-y-0" onClick={(e) => e.stopPropagation()}>
                     {canEditReport(report) && (
-                      <button onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 flex items-center justify-center min-h-[40px] min-w-[40px] sm:p-1 sm:min-h-[auto] sm:min-w-[auto]" title="Editar"><PencilIcon className="h-4 w-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); navigate(`/reports/${report.id}/edit`); }} className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-50 flex items-center justify-center min-h-[40px] min-w-[40px] md:p-1 md:min-h-[auto] md:min-w-[auto]" title="Editar"><PencilIcon className="h-4 w-4" /></button>
                     )}
                     {canDeleteReport(report) && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 flex items-center justify-center min-h-[40px] min-w-[40px] sm:p-1 sm:min-h-[auto] sm:min-w-[auto]" title="Eliminar"><TrashIcon className="h-4 w-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteReport(report.id); }} className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 flex items-center justify-center min-h-[40px] min-w-[40px] md:p-1 md:min-h-[auto] md:min-w-[auto]" title="Eliminar"><TrashIcon className="h-4 w-4" /></button>
                     )}
                   </div>
                 </td>
@@ -512,12 +512,12 @@ const Reports = () => {
             <h1 className="text-2xl font-bold text-gray-900">Reportes de Mantenimiento</h1>
             <p className="text-gray-600">Gestiona y supervisa todos los reportes por turno</p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
             {canExportReports && (
               <button 
                 onClick={handleExport}
                 disabled={exporting}
-                className="btn-secondary flex items-center"
+                className="btn-secondary flex items-center justify-center sm:justify-start"
               >
                 {exporting ? (
                   <>
@@ -534,7 +534,7 @@ const Reports = () => {
                 )}
               </button>
             )}
-            <Link to="/reports/create" className="btn-primary flex items-center">
+            <Link to="/reports/create" className="btn-primary flex items-center justify-center sm:justify-start">
               <PlusIcon className="h-5 w-5 mr-2" />
               Nuevo Reporte
             </Link>
@@ -709,16 +709,16 @@ const Reports = () => {
                     
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-semibold text-gray-700 mb-3">Prioridad y Estado</h4>
-                      <div className="flex space-x-4">
-                        <div>
-                          <span className="text-gray-600">Prioridad:</span>
-                          <span className={`ml-2 px-2 py-1 rounded-full text-sm font-semibold ${getPriorityColor(selectedReport.priority)}`}>
+                      <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                          <span className="text-gray-600 sm:mr-2">Prioridad:</span>
+                          <span className={`mt-1 sm:mt-0 px-2 py-1 rounded-full text-sm font-semibold ${getPriorityColor(selectedReport.priority)}`}>
                             {selectedReport.priority.charAt(0).toUpperCase() + selectedReport.priority.slice(1)}
                           </span>
                         </div>
-                        <div>
-                          <span className="text-gray-600">Estado:</span>
-                          <span className={`ml-2 px-2 py-1 rounded-full text-sm font-semibold ${getStatusColor(selectedReport.status)}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center">
+                          <span className="text-gray-600 sm:mr-2">Estado:</span>
+                          <span className={`mt-1 sm:mt-0 px-2 py-1 rounded-full text-sm font-semibold ${getStatusColor(selectedReport.status)}`}>
                             {selectedReport.status.charAt(0).toUpperCase() + selectedReport.status.slice(1)}
                           </span>
                         </div>
